@@ -347,6 +347,7 @@ main{padding-top:14px}
         <input type="file" id="addFiles" multiple style="display:none">
         <button id="newBrBtn">🆕 New</button>
       </div>
+      <div id="brCompatNote" class="status" style="margin-top:6px;">JSON compatibility checks use shared rules when you choose Check JSON. Binary files are preserved as bytes.</div>
       <div class="status" id="brLoadStatus">No file loaded.</div>
     </div>
     <div class="card">
@@ -380,6 +381,7 @@ main{padding-top:14px}
         <button id="packAddBtn">＋ Add files</button>
         <input id="packAddInput" type="file" multiple style="display:none">
       </div>
+      <div id="packCompatNote" class="status" style="margin-bottom:8px;">Pack inspection uses the shared compatibility rules when manifest.json files are checked. Unknown format versions are not automatically treated as invalid.</div>
       <div id="packTree"><div style="color:var(--dim);text-align:center;padding:20px;">Open a pack</div></div>
       <div class="card" style="margin-top:12px;background:var(--panel2);">
         <h3 style="margin-top:0;">Image / Texture preview</h3>
@@ -563,6 +565,7 @@ main{padding-top:14px}
         <input type="text" id="defaultNs" value="mypack" style="max-width:120px;">
         <button id="genTemplate" class="primary">Generate</button>
       </div>
+      <div id="templateCompatNote" class="status" style="margin-top:8px;">Template format_version belongs to the file schema, not directly to the installed Minecraft version. Check compatibility notes in Settings.</div>
       <textarea id="templateOut" style="margin-top:10px;" readonly></textarea>
       <pre id="templateHighlight" class="hl-pre language-json hidden"><code></code></pre>
     </div>
@@ -603,6 +606,7 @@ main{padding-top:14px}
         <button id="apiCheckBtn">Check pasted script</button>
       </div>
       <textarea id="apiCode" spellcheck="false" placeholder="Choose a snippet or paste JavaScript to check..." style="margin-top:8px;min-height:190px;"></textarea>
+      <div id="apiCompatNote" class="status" style="margin-top:8px;">Script API versions are independent of Minecraft product versions.</div>
       <div id="apiCheckStatus" class="status" aria-live="polite"></div>
       <div style="font-size:12px;color:var(--dim);margin-top:8px;">Docs: <a href="https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable" target="_blank" rel="noopener noreferrer">Microsoft Learn · @minecraft/server</a> · <a href="https://learn.microsoft.com/en-us/minecraft/creator/documents/scripting/versioning?view=minecraft-bedrock-stable" target="_blank" rel="noopener noreferrer">Script API versioning</a></div>
     </div>
@@ -1916,6 +1920,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     status('Compatibility data ' + data.data_version + ' · ' + label, false);
     renderSources();
     renderReport();
+    renderToolCompatibilityNotes();
     window.dispatchEvent(new CustomEvent('studio-compatibility-ready', { detail: data }));
   }
   async function loadBundled() {
@@ -2020,8 +2025,19 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     getTargetVersion(){ return (byId('compatTargetVersion')?.value || '').trim(); },
     refresh: refreshOnline
   };
-  byId('compatTargetVersion')?.addEventListener('input', renderReport);
-  byId('compatCheckBtn')?.addEventListener('click', renderReport);
+  function renderToolCompatibilityNotes() {
+    if (!compatibilityData) return;
+    const target = (byId('compatTargetVersion')?.value || '').trim();
+    const api = compatibilityData.script_api.minecraft_to_server_api_partial[target];
+    const apiNote = byId('apiCompatNote');
+    if (apiNote) apiNote.textContent = api
+      ? 'Bundled official reference: Minecraft ' + target + ' maps to @minecraft/server ' + api + '. This is a partial historical mapping; confirm current requirements in Microsoft Learn.'
+      : 'No exact @minecraft/server mapping is included for Minecraft ' + (target || '(unset)') + '. Script API versions are independent of game versions; do not infer a dependency version.';
+    const templateNote = byId('templateCompatNote');
+    if (templateNote) templateNote.textContent = 'Target Minecraft: ' + (target || '(unset)') + '. Template format_version is a separate file-schema version. The selected template value is a starter example, not a guarantee of latest schema or compatibility.';
+  }
+  byId('compatTargetVersion')?.addEventListener('input', () => { renderReport(); renderToolCompatibilityNotes(); });
+  byId('compatCheckBtn')?.addEventListener('click', () => { renderReport(); renderToolCompatibilityNotes(); });
   byId('compatRefreshBtn')?.addEventListener('click', refreshOnline);
   async function init() {
     let cached = null;

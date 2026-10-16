@@ -1,9 +1,10 @@
-const CACHE = 'mc-tools-v9';
+const CACHE = 'mc-tools-v10';
 const CORE_ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 const OPTIONAL_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js'
 ];
 
 self.addEventListener('install', event => {
@@ -12,8 +13,8 @@ self.addEventListener('install', event => {
     await cache.addAll(CORE_ASSETS);
     await Promise.all(OPTIONAL_ASSETS.map(async url => {
       try {
-        const response = await fetch(url, { mode: 'no-cors' });
-        if (response && response.type !== 'opaque' && response.ok) await cache.put(url, response);
+        const response = await fetch(url, { mode: 'no-cors', cache: 'reload' });
+        if (response) await cache.put(url, response);
       } catch {}
     }));
     await self.skipWaiting();
@@ -39,7 +40,7 @@ self.addEventListener('fetch', event => {
         const cached = await caches.match(url.href);
         if (cached) return cached;
         try { return await fetch(request); }
-        catch { return new Response('Library unavailable offline. Reconnect to the internet and reload.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
+        catch { return new Response('Library unavailable offline. Reconnect and reload to use this feature.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
       })());
     }
     return;

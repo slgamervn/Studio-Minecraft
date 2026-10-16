@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "data_version": "2026.10.17.1",
+  "updated_utc": "2026-10-17",
+  "source_policy": "Only encode rules supported by linked Microsoft Minecraft Creator documentation. A missing mapping means unknown, not unsupported.",
+  "sources": [
+    {
+      "id": "manifest",
+      "url": "https://learn.microsoft.com/minecraft/creator/reference/content/addonsreference/packmanifest?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "settings",
+      "url": "https://learn.microsoft.com/minecraft/creator/documents/addons/custompacksettings?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "subpacks",
+      "url": "https://learn.microsoft.com/minecraft/creator/documents/buildingsubpacks?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "script-versioning",
+      "url": "https://learn.microsoft.com/minecraft/creator/documents/scripting/versioning?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "version-disambiguation",
+      "url": "https://learn.microsoft.com/minecraft/creator/reference/content/VersionDisambiguation?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    }
+  ],
+  "manifest": {
+    "format_versions": {
+      "1": {
+        "status": "documented",
+        "for": [
+          "skin"
+        ],
+        "version_fields": "array",
+        "custom_settings": false
+      },
+      "2": {
+        "status": "stable",
+        "for": [
+          "behavior",
+          "resource",
+          "world_template"
+        ],
+        "version_fields": "array",
+        "custom_settings": false
+      },
+      "3": {
+        "status": "preview",
+        "for": [
+          "behavior",
+          "resource",
+          "world_template"
+        ],
+        "version_fields": "semver",
+        "custom_settings": true,
+        "notes": [
+          "Preview feature; verify target game support.",
+          "Microsoft documentation notes metadata.author(s) is currently required by V3 processing."
+        ]
+      }
+    },
+    "module_types": [
+      "data",
+      "resources",
+      "script",
+      "skin_pack",
+      "world_template",
+      "client_data"
+    ],
+    "capabilities": [
+      "chemistry",
+      "pbr",
+      "raytraced"
+    ],
+    "subpacks": {
+      "intended_for": [
+        "resource"
+      ],
+      "required_fields": [
+        "folder_name",
+        "name"
+      ],
+      "memory_tier": {
+        "status": "documented",
+        "notes": "Each tier represents 250 MB; documentation says this is planned to be replaced by memory_performance_tier."
+      },
+      "memory_performance_tier": {
+        "status": "experimental",
+        "format_version": 3,
+        "min": 1,
+        "max": 5
+      }
+    },
+    "settings": {
+      "status": "experimental",
+      "format_version": 3,
+      "types": [
+        "label",
+        "toggle",
+        "slider",
+        "dropdown"
+      ],
+      "not_for": [
+        "skin"
+      ],
+      "notes": [
+        "Settings support is documented as experimental for behavior packs.",
+        "Resource-pack settings can be accessed through documented Molang queries."
+      ]
+    },
+    "metadata_fields": [
+      "authors",
+      "license",
+      "url",
+      "product_type",
+      "generated_with"
+    ],
+    "header_fields": [
+      "name",
+      "description",
+      "uuid",
+      "version",
+      "min_engine_version",
+      "pack_scope",
+      "base_game_version",
+      "lock_template_options",
+      "allow_random_seed"
+    ]
+  },
+  "script_api": {
+    "policy": "Script API module versions are independent of Minecraft product versions. This is a partial historical mapping from the official versioning page, not a current latest-version catalogue.",
+    "minecraft_to_server_api_partial": {
+      "1.19.70": "1.0.0",
+      "1.19.80": "1.1.0",
+      "1.20.0": "1.2.0",
+      "1.20.10": "1.3.0",
+      "1.20.20": "1.4.0",
+      "1.20.30": "1.5.0",
+      "1.20.40": "1.6.0",
+      "1.20.50": "1.7.0",
+      "1.20.60": "1.8.0",
+      "1.20.70": "1.9.0",
+      "1.20.80": "1.10.0",
+      "1.21.0": "1.11.0",
+      "1.21.20": "1.13.0",
+      "1.21.30": "1.14.0",
+      "1.21.40": "1.15.0",
+      "1.21.50": "1.16.0",
+      "1.21.60": "1.17.0"
+    },
+    "tracks": [
+      "stable",
+      "beta",
+      "internal"
+    ],
+    "notes": [
+      "Beta API versions do not guarantee backward compatibility and may require the Beta APIs experiment.",
+      "Internal APIs are not supported for custom behavior packs.",
+      "Do not infer an API version for a Minecraft release missing from the mapping."
+    ]
+  },
+  "file_formats": {
+    "rule": "A JSON file's format_version describes that file type's data contract; it is not generally the same as the installed Minecraft version.",
+    "template_defaults": {
+      "entity": "1.21.0",
+      "item": "1.21.0",
+      "block": "1.21.0",
+      "recipe": "1.12.0"
+    },
+    "note": "Template defaults are starter examples only, not a guarantee of latest schema or compatibility with every component."
+  },
+  "online_update": {
+    "strategy": "bundled-first-then-refresh",
+    "url": "./data/minecraft-compat.json",
+    "cache_key": "studio-minecraft-compat-v1",
+    "cache_policy": "Use bundled data when available; retain last valid cached data when offline. Never execute downloaded code."
+  }
+}

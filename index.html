@@ -205,6 +205,15 @@ textarea{min-height:150px;line-height:1.65}
       </div>
       <div id="packTree"><div style="color:var(--dim);text-align:center;padding:20px;">Open a pack</div></div>
       <div class="card" style="margin-top:12px;background:var(--panel2);">
+        <h3 style="margin-top:0;">Image / Texture preview</h3>
+        <div id="packImageMeta" class="status">Choose a PNG, JPG, WebP, GIF or SVG file in the tree.</div>
+        <img id="packImagePreview" alt="Selected pack texture preview" class="hidden" style="display:block;max-width:100%;max-height:360px;object-fit:contain;margin:10px auto;border:1px solid var(--line);border-radius:10px;background:#101416;">
+      </div>
+      <div class="card" style="margin-top:12px;background:var(--panel2);">
+        <h3 style="margin-top:0;">Manifest overview</h3>
+        <div id="packManifestInfo" class="status">Open a pack to inspect manifest.json.</div>
+      </div>
+      <div class="card" style="margin-top:12px;background:var(--panel2);">
         <h3 style="margin-top:0;">Text file editor</h3>
         <div class="row">
           <input id="packEditPath" type="text" placeholder="Select a file above or enter a path" aria-label="Selected file path">
@@ -225,8 +234,12 @@ textarea{min-height:150px;line-height:1.65}
       <h2>Export</h2>
       <div class="row">
         <input type="text" id="packExportName" value="edited.mcpack">
-        <button id="exportMcpack" class="primary">📦 Export as .mcpack</button>
+        <button id="packBackupBtn">Download backup</button>
+        <button id="packUndoBtn">Undo edit</button>
+        <button id="packRedoBtn">Redo edit</button>
+        <button id="exportMcpack" class="primary">📦 Export archive</button>
       </div>
+      <div class="status" id="packDraftStatus">Draft autosave is ready when a text file is opened.</div>
       <div class="status" id="exportPackStatus"></div>
     </div>
   </div>
@@ -350,6 +363,29 @@ textarea{min-height:150px;line-height:1.65}
       <textarea id="contentsInput" placeholder="entities/custom.entity.json"></textarea>
       <button id="genContents" class="primary" style="margin-top:8px;">Generate contents.json</button>
       <textarea id="contentsOut" readonly style="margin-top:10px;"></textarea>
+    </div>
+    <div class="card">
+      <h2>Script API Helper</h2>
+      <p style="color:var(--dim);font-size:12px;">Starter snippets and lightweight compatibility checks. Verify exact API availability against the official docs for your target game version.</p>
+      <div class="row">
+        <select id="apiVersion">
+          <option value="1.21.0">Minecraft 1.21.x · @minecraft/server 1.x</option>
+          <option value="2.0.0">Script API 2.0.0</option>
+          <option value="2.9.0" selected>Script API 2.9.0</option>
+          <option value="2.10.0">Script API 2.10.0</option>
+        </select>
+        <select id="apiSnippet">
+          <option value="spawn">Player spawn event</option>
+          <option value="interval">System interval</option>
+          <option value="dimension">Get dimension</option>
+          <option value="form">ActionFormData menu</option>
+        </select>
+        <button id="apiInsertBtn" class="primary">Use snippet</button>
+        <button id="apiCheckBtn">Check pasted script</button>
+      </div>
+      <textarea id="apiCode" spellcheck="false" placeholder="Choose a snippet or paste JavaScript to check..." style="margin-top:8px;min-height:190px;"></textarea>
+      <div id="apiCheckStatus" class="status" aria-live="polite"></div>
+      <div style="font-size:12px;color:var(--dim);margin-top:8px;">Docs: <a href="https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable" target="_blank" rel="noopener noreferrer">Microsoft Learn · @minecraft/server</a> · <a href="https://learn.microsoft.com/en-us/minecraft/creator/documents/scripting/versioning?view=minecraft-bedrock-stable" target="_blank" rel="noopener noreferrer">Script API versioning</a></div>
     </div>
     <div class="card">
       <h2>Snippets</h2>

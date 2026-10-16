@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bedrock Coder Studio</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#5ec9a6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bedrock Studio">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<style>
+:root {
+  --bg: #0d1012;
+  --panel: #15191c;
+  --panel2: #1b2124;
+  --line: #2a3236;
+  --text: #e8eef0;
+  --dim: #8a969c;
+  --accent: #5ec9a6;
+  --accent-dim: #2f4a41;
+  --warn: #e07a5f;
+  --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;line-height:1.55;min-height:100vh;}
+header{padding:12px 14px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+header h1{margin:0;font-size:17px;color:var(--accent);font-weight:600;letter-spacing:0.01em;}
+header .sub{color:var(--dim);font-size:11.5px;margin-top:3px;}
+.header-right{display:flex;gap:8px;align-items:center;}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px 14px;border-radius:8px;font-family:var(--mono);font-size:13px;cursor:pointer;transition:border-color .15s, color .15s, background .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+button:hover, button:active{border-color:var(--accent);color:var(--accent);}
+button.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:500;}
+.tabs{display:flex;gap:0;padding:6px 10px 0;border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--bg);}
+.tab{padding:11px 16px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim);font-size:13px;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:color .15s, border-color .15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+main{max-width:920px;margin:0 auto;padding:14px 12px 90px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.12);animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.tab{transition:color .15s, border-color .15s, background .15s;}
+button{transition:border-color .15s, color .15s, background .15s, transform .1s;}
+button:active{transform:scale(0.98);}
+.card h2{margin:0 0 12px;font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);font-weight:600;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+textarea,input[type=text],select{background:#0b0e10;border:1px solid var(--line);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 12px;outline:none;transition:border-color .15s;}
+textarea{width:100%;min-height:130px;resize:vertical;}
+textarea:focus,input:focus,select:focus{border-color:var(--accent);}
+.status{font-size:12px;color:var(--dim);min-height:18px;margin-top:8px;}
+.status.ok{color:var(--accent);}
+.status.err{color:var(--warn);}
+.hidden{display:none!important;}
+.lang-select{background:#0b0e10;border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-family:var(--mono);font-size:12.5px;}
+.hl-pre{background:#0b0e10;border:1px solid var(--line);border-radius:7px;padding:12px;overflow:auto;max-height:280px;font-size:12.5px;margin-top:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Bedrock Coder Studio</h1>
+    <div class="sub" id="loadStatus">Đang tải...</div>
+  </div>
+  <div class="header-right">
+    <select id="langSelect" class="lang-select">
+      <option value="vi">Tiếng Việt</option>
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="es">Español</option>
+      <option value="id">Indonesia</option>
+    </select>
+    <button id="themeBtn">🌙</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-tab="tools">Tools</button>
+  <button class="tab" data-tab="brarchive">BrArchive</button>
+  <button class="tab" data-tab="pack">Pack Explorer</button>
+  <button class="tab" data-tab="manifest">Manifest</button>
+  <button class="tab" data-tab="lang">Lang & Templates</button>
+  <button class="tab" data-tab="coder">Coder Tools</button>
+  <button class="tab" data-tab="settings">Settings</button>
+</div>
+
+<main>
+  <div id="tab-tools">
+    <div class="card">
+      <h2>Unicode Escape</h2>
+      <textarea id="uInput" placeholder='{"\\u006c\\u006f\\u0061\\u0064":["\\u0074\\u0065\\u0078\\u0074"]}'></textarea>
+      <div class="row" style="margin-top:10px;">
+        <button class="primary" id="decodeBtn">Decode</button>
+        <button id="encodeBtn">Encode</button>
+        <button id="fixBtn">Auto-fix JSON</button>
+        <button id="prettyBtn">Pretty</button>
+        <button id="minifyBtn">Minify</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+      <div class="status" id="uStatus"></div>
+      <textarea id="uOutput" readonly style="margin-top:10px;"></textarea>
+      <pre id="uHighlight" class="hl-pre language-json hidden"><code></code></pre>
+      <div class="row" style="margin-top:8px;">
+        <button id="copyBtn">Copy</button>
+        <button id="highlightBtn">Highlight</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>UUID Generator</h2>
+      <div class="row">
+        <button id="genUuid" class="primary">Generate UUID</button>
+        <input type="text" id="uuidOut" readonly style="flex:2;">
+        <button id="copyUuid">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-brarchive" class="hidden">
+    <div class="card">
+      <h2>BrArchive</h2>
+      <div class="row">
+        <button id="openBrBtn">📂 Open .brarchive</button>
+        <input type="file" id="openBr" accept=".brarchive" style="display:none">
+        <button id="addFilesBtn">➕ Add files</button>
+        <input type="file" id="addFiles" multiple style="display:none">
+        <button id="newBrBtn">🆕 New</button>
+      </div>
+      <div class="status" id="brLoadStatus">No file loaded.</div>
+    </div>
+    <div class="card">
+      <h2>Files (<span id="entryCount">0</span>)</h2>
+      <div id="entryList"><div style="color:var(--dim);text-align:center;padding:20px;">Open a .brarchive</div></div>
+    </div>
+    <div class="card">
+      <h2>Export</h2>
+      <div class="row">
+        <input type="text" id="outputName" value="output.brarchive">
+        <button id="packBtn" class="primary">📦 Pack .brarchive</button>
+        <button id="zipBtn">🗂️ Export ZIP</button>
+      </div>
+      <div class="status" id="packStatus"></div>
+    </div>
+  </div>
+
+  <div id="tab-pack" class="hidden">
+    <div class="card">
+      <h2>Pack Explorer</h2>
+      <div class="row">
+        <button id="openPackBtn">📂 Open .mcpack / .mcaddon / .zip</button>
+        <input type="file" id="openPack" accept=".mcpack,.mcaddon,.zip" style="display:none">
+      </div>
+      <div class="status" id="packStatus2"></div>
+    </div>
+    <div class="card">
+      <h2>Structure</h2>
+      <div id="packTree"><div style="color:var(--dim);text-align:center;padding:20px;">Open a pack</div></div>
+    </div>
+    <div class="card">
+      <h2>Export</h2>
+      <div class="row">
+        <input type="text" id="packExportName" value="edited.mcpack">
+        <button id="exportMcpack" class="primary">📦 Export as .mcpack</button>
+      </div>
+      <div class="status" id="exportPackStatus"></div>
+    </div>
+  </div>
+
+  <div id="tab-manifest" class="hidden">
+    <div class="card">
+      <h2>Generate Manifest</h2>
+      <div class="row">
+        <select id="manifestType">
+          <option value="bp">Behavior Pack</option>
+          <option value="rp">Resource Pack</option>
+          <option value="script">Script Pack</option>
+          <option value="skin">Skin Pack</option>
+        </select>
+        <select id="manifestVer">
+          <option value="1">format 1 (skin)</option>
+          <option value="2" selected>format 2 (stable)</option>
+          <option value="3">format 3 (preview)</option>
+        </select>
+        <select id="minEngine">
+          <option value="1.16.0">1.16.0</option>
+          <option value="1.18.0">1.18.0</option>
+          <option value="1.20.0">1.20.0</option>
+          <option value="1.21.0">1.21.0</option>
+          <option value="1.21.50">1.21.50</option>
+          <option value="1.26.0" selected>1.26.0</option>
+          <option value="1.26.50">1.26.50</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input type="text" id="manifestName" placeholder="Pack name" style="flex:2;">
+        <input type="text" id="manifestDesc" placeholder="Description" style="flex:2;">
+        <input type="text" id="manifestAuthor" placeholder="Author" style="flex:1;">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label style="font-size:12px;"><input type="checkbox" id="addScript"> Add script module</label>
+        <label style="font-size:12px;"><input type="checkbox" id="addServerDep"> @minecraft/server dep</label>
+        <button id="genManifest" class="primary">Generate</button>
+      </div>
+      <textarea id="manifestOut" style="margin-top:10px;" readonly></textarea>
+      <div class="row" style="margin-top:8px;">
+        <button id="copyManifest">Copy</button>
+        <button id="downloadManifest">Download</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-lang" class="hidden">
+    <div class="card">
+      <h2>Lang Editor</h2>
+      <textarea id="langInput" placeholder="key.name=Value"></textarea>
+      <div class="row" style="margin-top:10px;">
+        <button id="langDecode" class="primary">Decode \u</button>
+        <button id="langEncode">Encode \u</button>
+        <button id="langToJson">To JSON</button>
+        <button id="langFromJson">From JSON</button>
+      </div>
+      <div class="status" id="langStatus"></div>
+      <textarea id="langOutput" readonly style="margin-top:10px;"></textarea>
+    </div>
+    <div class="card">
+      <h2>Quick Templates</h2>
+      <div class="row">
+        <select id="templateType">
+          <option value="entity">Entity</option>
+          <option value="item">Item</option>
+          <option value="block">Block</option>
+          <option value="recipe">Recipe</option>
+          <option value="function">Function</option>
+        </select>
+        <select id="templateVer">
+          <option value="1.20.0">format 1.20.0</option>
+          <option value="1.21.0">format 1.21.0</option>
+          <option value="1.21.50">format 1.21.50</option>
+          <option value="1.26.0" selected>format 1.26.0</option>
+          <option value="1.26.50">format 1.26.50</option>
+        </select>
+        <input type="text" id="defaultNs" value="mypack" style="max-width:120px;">
+        <button id="genTemplate" class="primary">Generate</button>
+      </div>
+      <textarea id="templateOut" style="margin-top:10px;" readonly></textarea>
+      <pre id="templateHighlight" class="hl-pre language-json hidden"><code></code></pre>
+    </div>
+  </div>
+
+  <div id="tab-coder" class="hidden">
+    <div class="card">
+      <h2>Pack Skeleton</h2>
+      <div class="row">
+        <input type="text" id="skelName" value="My Addon">
+        <button id="genSkeleton" class="primary">Generate Skeleton ZIP</button>
+      </div>
+      <div class="status" id="skelStatus"></div>
+    </div>
+    <div class="card">
+      <h2>contents.json</h2>
+      <textarea id="contentsInput" placeholder="entities/custom.entity.json"></textarea>
+      <button id="genContents" class="primary" style="margin-top:8px;">Generate contents.json</button>
+      <textarea id="contentsOut" readonly style="margin-top:10px;"></textarea>
+    </div>
+    <div class="card">
+      <h2>Snippets</h2>
+      <div class="row">
+        <select id="snippetType">
+          <option value="health">health</option>
+          <option value="movement">movement</option>
+          <option value="script">script</option>
+          <option value="icon">icon</option>
+          <option value="family">type_family</option>
+        </select>
+        <button id="showSnippet" class="primary">Show</button>
+      </div>
+      <textarea id="snippetOut" readonly style="margin-top:10px;"></textarea>
+    </div>
+  </div>
+
+  <div id="tab-settings" class="hidden">
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="row">
+        <label>Accent:</label>
+        <input type="color" id="accentColor" value="#5ec9a6">
+        <button id="resetAccent">Reset</button>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <label>Namespace:</label>
+        <input type="text" id="settingsNs" style="max-width:160px;">
+      </div>
+      <div class="status" id="settingsStatus"></div>
+    </div>
+    <div class="card">
+      <h2>Supported Files</h2>
+      <p style="font-size:12px;color:var(--dim);line-height:1.6;">
+        JSON, .lang, .mcfunction, .js, .brarchive, .mcpack, .mcaddon<br>
+        <strong>Trên điện thoại</strong>: Chọn file từ Files/Drive. Download sẽ lưu vào thư mục Download.
+      </p>
+    </div>
+  </div>
+<footer>
+  Bedrock Coder Studio — by snowgem<br>
+  Client-side tools for Minecraft Bedrock coders. Supports format versions up to 1.26.x (latest ~1.26.52).<br>
+  BrArchive format based on community reverse-engineering (bedrock-crustaceans/brarchive-rs FORMAT.md).<br>
+  .mcpack / .mcaddon are ZIP. Manifest follows Microsoft Learn.
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script>
+try {
+// Tab switching
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('[id^="tab-"]').forEach(el => {
+      el.classList.toggle('hidden', el.id !== 'tab-' + tab.dataset.tab);
+    });
+  };
+});
+document.getElementById('loadStatus').textContent = 'Sẵn sàng';
+
+// Theme
+// Safe storage (localStorage may be blocked on file://)
+const storage = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  remove(k) { try { localStorage.removeItem(k); } catch {} }
+};
+const I18N = {
+  vi: {
+    subtitle: 'Công cụ cho coder Minecraft Bedrock',
+    tools: 'Công cụ', brarchive: 'BrArchive', pack: 'Khám phá Pack', manifest: 'Manifest',
+    lang: 'Lang & Mẫu', coder: 'Công cụ Coder', settings: 'Cài đặt',
+    decode: 'Giải mã', encode: 'Mã hoá', fix: 'Tự sửa JSON', pretty: 'Định dạng',
+    minify: 'Nén', clear: 'Xoá', copy: 'Sao chép', highlight: 'Tô màu',
+    genUuid: 'Tạo UUID', openBr: 'Mở .brarchive', addFiles: 'Thêm file', new: 'Mới',
+    packBr: 'Đóng gói .brarchive', exportZip: 'Xuất ZIP', openPack: 'Mở pack',
+    exportMcpack: 'Xuất .mcpack', genManifest: 'Tạo Manifest', generate: 'Tạo',
+    langDecode: 'Giải mã \\u', langEncode: 'Mã hoá \\u', toJson: 'Sang JSON', fromJson: 'Từ JSON',
+    genTemplate: 'Tạo mẫu', genSkeleton: 'Tạo Skeleton ZIP', genContents: 'Tạo contents.json',
+    showSnippet: 'Hiện đoạn code', ready: 'Sẵn sàng'
+  },
+  en: {
+    subtitle: 'Tools for Minecraft Bedrock coders',
+    tools: 'Tools', brarchive: 'BrArchive', pack: 'Pack Explorer', manifest: 'Manifest',
+    lang: 'Lang & Templates', coder: 'Coder Tools', settings: 'Settings',
+    decode: 'Decode', encode: 'Encode', fix: 'Auto-fix JSON', pretty: 'Pretty',
+    minify: 'Minify', clear: 'Clear', copy: 'Copy', highlight: 'Highlight',
+    genUuid: 'Generate UUID', openBr: 'Open .brarchive', addFiles: 'Add files', new: 'New',
+    packBr: 'Pack .brarchive', exportZip: 'Export ZIP', openPack: 'Open pack',
+    exportMcpack: 'Export as .mcpack', genManifest: 'Generate Manifest', generate: 'Generate',
+    langDecode: 'Decode \\u', langEncode: 'Encode \\u', toJson: 'To JSON', fromJson: 'From JSON',
+    genTemplate: 'Generate', genSkeleton: 'Generate Skeleton ZIP', genContents: 'Generate contents.json',
+    showSnippet: 'Show Snippet', ready: 'Ready'
+  },
+  zh: {
+    subtitle: 'Minecraft 基岩版开发工具',
+    tools: '工具', brarchive: 'BrArchive', pack: '包浏览器', manifest: '清单',
+    lang: '语言与模板', coder: '开发工具', settings: '设置',
+    decode: '解码', encode: '编码', fix: '自动修复 JSON', pretty: '美化',
+    minify: '压缩', clear: '清除', copy: '复制', highlight: '高亮',
+    genUuid: '生成 UUID', openBr: '打开 .brarchive', addFiles: '添加文件', new: '新建',
+    packBr: '打包 .brarchive', exportZip: '导出 ZIP', openPack: '打开包',
+    exportMcpack: '导出为 .mcpack', genManifest: '生成清单', generate: '生成',
+    langDecode: '解码 \\u', langEncode: '编码 \\u', toJson: '转为 JSON', fromJson: '从 JSON',
+    genTemplate: '生成模板', genSkeleton: '生成骨架 ZIP', genContents: '生成 contents.json',
+    showSnippet: '显示片段', ready: '就绪'
+  },
+  es: {
+    subtitle: 'Herramientas para coders de Minecraft Bedrock',
+    tools: 'Herramientas', brarchive: 'BrArchive', pack: 'Explorador', manifest: 'Manifiesto',
+    lang: 'Lang y Plantillas', coder: 'Herramientas Coder', settings: 'Ajustes',
+    decode: 'Decodificar', encode: 'Codificar', fix: 'Auto-corregir JSON', pretty: 'Bonito',
+    minify: 'Minificar', clear: 'Limpiar', copy: 'Copiar', highlight: 'Resaltar',
+    genUuid: 'Generar UUID', openBr: 'Abrir .brarchive', addFiles: 'Añadir archivos', new: 'Nuevo',
+    packBr: 'Empaquetar .brarchive', exportZip: 'Exportar ZIP', openPack: 'Abrir pack',
+    exportMcpack: 'Exportar como .mcpack', genManifest: 'Generar Manifiesto', generate: 'Generar',
+    langDecode: 'Decodificar \\u', langEncode: 'Codificar \\u', toJson: 'A JSON', fromJson: 'Desde JSON',
+    genTemplate: 'Generar', genSkeleton: 'Generar Skeleton ZIP', genContents: 'Generar contents.json',
+    showSnippet: 'Mostrar Fragmento', ready: 'Listo'
+  },
+  id: {
+    subtitle: 'Alat untuk coder Minecraft Bedrock',
+    tools: 'Alat', brarchive: 'BrArchive', pack: 'Penjelajah Pack', manifest: 'Manifest',
+    lang: 'Lang & Template', coder: 'Alat Coder', settings: 'Pengaturan',
+    decode: 'Decode', encode: 'Encode', fix: 'Perbaiki JSON', pretty: 'Rapikan',
+    minify: 'Minify', clear: 'Hapus', copy: 'Salin', highlight: 'Sorot',
+    genUuid: 'Buat UUID', openBr: 'Buka .brarchive', addFiles: 'Tambah file', new: 'Baru',
+    packBr: 'Pack .brarchive', exportZip: 'Ekspor ZIP', openPack: 'Buka pack',
+    exportMcpack: 'Ekspor sebagai .mcpack', genManifest: 'Buat Manifest', generate: 'Buat',
+    langDecode: 'Decode \\u', langEncode: 'Encode \\u', toJson: 'Ke JSON', fromJson: 'Dari JSON',
+    genTemplate: 'Buat Template', genSkeleton: 'Buat Skeleton ZIP', genContents: 'Buat contents.json',
+    showSnippet: 'Tampilkan Snippet', ready: 'Siap'
+  }
+};
+
+function applyLang() {
+  const lang = document.getElementById('langSelect').value || 'vi';
+  const t = I18N[lang] || I18N.vi;
+  document.getElementById('loadStatus').textContent = t.ready;
+  document.querySelectorAll('.tab').forEach(tab => {
+    const key = tab.dataset.tab;
+    if (t[key]) tab.textContent = t[key];
+  });
+  const map = {
+    decodeBtn: 'decode', encodeBtn: 'encode', fixBtn: 'fix', prettyBtn: 'pretty',
+    minifyBtn: 'minify', clearBtn: 'clear', copyBtn: 'copy', highlightBtn: 'highlight',
+    genUuid: 'genUuid', openBrBtn: 'openBr', addFilesBtn: 'addFiles', newBrBtn: 'new',
+    packBtn: 'packBr', zipBtn: 'exportZip', openPackBtn: 'openPack',
+    exportMcpack: 'exportMcpack', genManifest: 'generate',
+    langDecode: 'langDecode', langEncode: 'langEncode', langToJson: 'toJson', langFromJson: 'fromJson',
+    genTemplate: 'genTemplate', genSkeleton: 'genSkeleton', genContents: 'genContents',
+    showSnippet: 'showSnippet'
+  };
+  for (const [id, key] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el && t[key]) el.textContent = t[key];
+  }
+}
+document.getElementById('langSelect').onchange = applyLang;
+applyLang();
+
+const prefs = { theme: storage.get('theme') || 'dark', ns: storage.get('ns') || 'mypack' };
+function applyTheme() {
+  if (prefs.theme === 'light') {
+    document.documentElement.style.setProperty('--bg', '#f7f4ef');
+    document.documentElement.style.setProperty('--panel', '#ffffff');
+    document.documentElement.style.setProperty('--panel2', '#f0ebe4');
+    document.documentElement.style.setProperty('--line', '#d4cfc6');
+    document.documentElement.style.setProperty('--text', '#1f1a14');
+    document.documentElement.style.setProperty('--dim', '#6b645c');
+    document.documentElement.style.setProperty('--accent', '#c4512c');
+    document.documentElement.style.setProperty('--accent-dim', '#f3e4d8');
+    document.documentElement.style.setProperty('--warn', '#b45309');
+    document.getElementById('themeBtn').textContent = '☀️';
+  } else {
+    document.documentElement.style.setProperty('--bg', '#0d1012');
+    document.documentElement.style.setProperty('--panel', '#15191c');
+    document.documentElement.style.setProperty('--panel2', '#1b2124');
+    document.documentElement.style.setProperty('--line', '#2a3236');
+    document.documentElement.style.setProperty('--text', '#e8eef0');
+    document.documentElement.style.setProperty('--dim', '#8a969c');
+    document.documentElement.style.setProperty('--accent', '#5ec9a6');
+    document.documentElement.style.setProperty('--accent-dim', '#2f4a41');
+    document.documentElement.style.setProperty('--warn', '#e07a5f');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }
+  storage.set('theme', prefs.theme);
+}
+document.getElementById('themeBtn').onclick = () => { prefs.theme = prefs.theme === 'dark' ? 'light' : 'dark'; applyTheme(); };
+applyTheme();
+
+// Unicode
+function setStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.className = 'status' + (type ? ' ' + type : ''); }
+}
+document.getElementById('decodeBtn').onclick = () => {
+  const v = document.getElementById('uInput').value;
+  document.getElementById('uOutput').value = v.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  setStatus('uStatus', 'Decoded', 'ok');
+};
+document.getElementById('encodeBtn').onclick = () => {
+  const v = document.getElementById('uInput').value;
+  document.getElementById('uOutput').value = v.replace(/[^\x00-\x7F]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+  setStatus('uStatus', 'Encoded', 'ok');
+};
+document.getElementById('prettyBtn').onclick = () => {
+  try {
+    document.getElementById('uOutput').value = JSON.stringify(JSON.parse(document.getElementById('uInput').value), null, 2);
+    setStatus('uStatus', 'Pretty', 'ok');
+  } catch (e) { setStatus('uStatus', 'Invalid JSON', 'err'); }
+};
+document.getElementById('fixBtn').onclick = () => {
+  let s = document.getElementById('uInput').value.replace(/,(\s*[\]}])/g, '$1');
+  try { document.getElementById('uOutput').value = JSON.stringify(JSON.parse(s), null, 2); setStatus('uStatus', 'Fixed', 'ok'); }
+  catch (e) { setStatus('uStatus', 'Cannot fix', 'err'); }
+};
+document.getElementById('clearBtn').onclick = () => {
+  document.getElementById('uInput').value = ''; document.getElementById('uOutput').value = ''; setStatus('uStatus', '');
+};
+document.getElementById('copyBtn').onclick = () => navigator.clipboard.writeText(document.getElementById('uOutput').value).catch(() => {});
+document.getElementById('highlightBtn').onclick = () => {
+  const pre = document.getElementById('uHighlight');
+  pre.querySelector('code').textContent = document.getElementById('uOutput').value;
+  Prism.highlightElement(pre.querySelector('code'));
+  pre.classList.remove('hidden');
+};
+
+// UUID
+document.getElementById('genUuid').onclick = () => {
+  document.getElementById('uuidOut').value = crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
+};
+document.getElementById('copyUuid').onclick = () => navigator.clipboard.writeText(document.getElementById('uuidOut').value).catch(() => {});
+
+// Manifest
+document.getElementById('genManifest').onclick = () => {
+  const type = document.getElementById('manifestType').value;
+  const name = document.getElementById('manifestName').value || 'My Pack';
+  const desc = document.getElementById('manifestDesc').value || name;
+  const author = document.getElementById('manifestAuthor').value;
+  const ver = parseInt(document.getElementById('manifestVer').value) || 2;
+  const minEng = document.getElementById('minEngine').value.split('.').map(Number);
+  const addScript = document.getElementById('addScript').checked;
+  const addServer = document.getElementById('addServerDep').checked;
+  const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
+  const headerUuid = uuid();
+  const modules = [];
+  if (type === 'bp' || type === 'script') modules.push({ type: 'data', uuid: uuid(), version: [1,0,0], description: desc });
+  if (type === 'rp') modules.push({ type: 'resources', uuid: uuid(), version: [1,0,0], description: desc });
+  if (type === 'skin') modules.push({ type: 'skin_pack', uuid: uuid(), version: [1,0,0] });
+  if (addScript || type === 'script') modules.push({ type: 'script', uuid: uuid(), version: [1,0,0], language: 'javascript', entry: 'scripts/main.js' });
+  const obj = {
+    format_version: ver,
+    header: { name, description: desc, uuid: headerUuid, version: [1,0,0], min_engine_version: minEng },
+    modules
+  };
+  if (addServer) obj.dependencies = [{ module_name: '@minecraft/server', version: '1.9.0' }];
+  if (author) obj.metadata = { authors: [author] };
+  document.getElementById('manifestOut').value = JSON.stringify(obj, null, 2);
+};
+document.getElementById('copyManifest').onclick = () => navigator.clipboard.writeText(document.getElementById('manifestOut').value).catch(() => {});
+document.getElementById('downloadManifest').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([document.getElementById('manifestOut').value]));
+  a.download = 'manifest.json'; a.click();
+};
+
+// Lang
+document.getElementById('langDecode').onclick = () => {
+  document.getElementById('langOutput').value = document.getElementById('langInput').value.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  setStatus('langStatus', 'Decoded', 'ok');
+};
+document.getElementById('langEncode').onclick = () => {
+  document.getElementById('langOutput').value = document.getElementById('langInput').value.replace(/[^\x00-\x7F]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+  setStatus('langStatus', 'Encoded', 'ok');
+};
+document.getElementById('langToJson').onclick = () => {
+  const lines = document.getElementById('langInput').value.split('\n');
+  const obj = {};
+  lines.forEach(l => { const i = l.indexOf('='); if (i > 0) obj[l.slice(0,i).trim()] = l.slice(i+1).trim(); });
+  document.getElementById('langOutput').value = JSON.stringify(obj, null, 2);
+  setStatus('langStatus', 'Converted', 'ok');
+};
+
+// Templates
+const TEMPLATES = {
+  entity: '{\n  "format_version": "1.21.0",\n  "minecraft:entity": {\n    "description": { "identifier": "namespace:custom_entity", "is_spawnable": true },\n    "components": { "minecraft:health": { "value": 20, "max": 20 } }\n  }\n}',
+  item: '{\n  "format_version": "1.21.0",\n  "minecraft:item": {\n    "description": { "identifier": "namespace:custom_item" },\n    "components": { "minecraft:icon": "custom_item" }\n  }\n}',
+  block: '{\n  "format_version": "1.21.0",\n  "minecraft:block": {\n    "description": { "identifier": "namespace:custom_block" },\n    "components": { "minecraft:destructible_by_mining": { "seconds_to_destroy": 1.0 } }\n  }\n}',
+  recipe: '{\n  "format_version": "1.12.0",\n  "minecraft:recipe_shaped": {\n    "description": { "identifier": "namespace:custom_recipe" },\n    "tags": ["crafting_table"],\n    "pattern": ["XXX"],\n    "key": { "X": { "item": "minecraft:diamond" } },\n    "result": { "item": "namespace:custom_item" }\n  }\n}',
+  function: '# Custom function\nsay Hello!\n'
+};
+document.getElementById('genTemplate').onclick = () => {
+  const t = document.getElementById('templateType').value;
+  const ns = document.getElementById('defaultNs').value || 'mypack';
+  const ver = document.getElementById('templateVer').value || '1.21.0';
+  let tmpl = TEMPLATES[t] || '';
+  tmpl = tmpl.replace(/namespace:/g, ns + ':').replace(/"format_version": "[^"]+"/g, '"format_version": "' + ver + '"');
+  document.getElementById('templateOut').value = tmpl;
+  const pre = document.getElementById('templateHighlight');
+  pre.querySelector('code').textContent = tmpl;
+  Prism.highlightElement(pre.querySelector('code'));
+  pre.classList.remove('hidden');
+};
+
+// Coder Tools
+document.getElementById('genSkeleton').onclick = async () => {
+  const name = document.getElementById('skelName').value || 'My Addon';
+  const zip = new JSZip();
+  const bp = zip.folder('BP');
+  const rp = zip.folder('RP');
+  bp.file('manifest.json', JSON.stringify({ format_version: 2, header: { name, description: name, uuid: crypto.randomUUID(), version: [1,0,0], min_engine_version: [1,16,0] }, modules: [{ type: 'data', uuid: crypto.randomUUID(), version: [1,0,0] }] }, null, 2));
+  rp.file('manifest.json', JSON.stringify({ format_version: 2, header: { name: name + ' RP', description: name, uuid: crypto.randomUUID(), version: [1,0,0], min_engine_version: [1,16,0] }, modules: [{ type: 'resources', uuid: crypto.randomUUID(), version: [1,0,0] }] }, null, 2));
+  bp.folder('entities'); bp.folder('items'); rp.folder('texts').file('en_US.lang', 'pack.name=' + name);
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name.replace(/\s+/g, '_') + '_skeleton.zip'; a.click();
+  setStatus('skelStatus', 'Downloaded', 'ok');
+};
+document.getElementById('genContents').onclick = () => {
+  const lines = document.getElementById('contentsInput').value.split('\n').map(l => l.trim()).filter(Boolean);
+  document.getElementById('contentsOut').value = JSON.stringify({ content: lines.map(p => ({ path: p })) }, null, 2);
+};
+document.getElementById('minifyBtn').onclick = () => {
+  try {
+    document.getElementById('uOutput').value = JSON.stringify(JSON.parse(document.getElementById('uInput').value));
+    setStatus('uStatus', 'Minified', 'ok');
+  } catch (e) { setStatus('uStatus', 'Invalid JSON', 'err'); }
+};
+
+// Add files to BrArchive
+// Remove early duplicate file button handlers (they get overwritten)
+document.getElementById('addFiles').onchange = async e => {
+  for (const f of e.target.files) {
+    const buf = await f.arrayBuffer();
+    brEntries.push({ name: f.name, content: new Uint8Array(buf) });
+  }
+  renderBrEntries();
+  setStatus('brLoadStatus', brEntries.length + ' entries', 'ok');
+};
+
+// More snippets
+document.getElementById('showSnippet').onclick = () => {
+  const map = {
+    health: '"minecraft:health": { "value": 20, "max": 20 }',
+    movement: '"minecraft:movement": { "value": 0.25 }',
+    script: 'import { world } from "@minecraft/server";\nworld.afterEvents.playerSpawn.subscribe(e => e.player.sendMessage("Hi"));',
+    icon: '"minecraft:icon": "item_name"',
+    family: '"minecraft:type_family": { "family": ["custom"] }'
+  };
+  document.getElementById('snippetOut').value = map[document.getElementById('snippetType').value] || '';
+};
+
+// Remember last tab
+const lastTab = storage.get('lastTab');
+if (lastTab && document.querySelector('[data-tab="' + lastTab + '"]')) {
+  document.querySelector('[data-tab="' + lastTab + '"]').click();
+}
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => storage.set('lastTab', tab.dataset.tab));
+});
+
+// Settings
+document.getElementById('settingsNs').value = prefs.ns;
+document.getElementById('settingsNs').onchange = e => { prefs.ns = e.target.value; storage.set('ns', prefs.ns); document.getElementById('defaultNs').value = prefs.ns; setStatus('settingsStatus', 'Saved', 'ok'); };
+document.getElementById('accentColor').onchange = e => { document.documentElement.style.setProperty('--accent', e.target.value); storage.set('accent', e.target.value); setStatus('settingsStatus', 'Accent updated', 'ok'); };
+document.getElementById('resetAccent').onclick = () => { document.getElementById('accentColor').value = '#5ec9a6'; document.documentElement.style.setProperty('--accent', '#5ec9a6'); storage.remove('accent'); };
+
+// Pack Explorer (basic) — handlers moved later
+let packZip = null;
+document.getElementById('openPack').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  packZip = await JSZip.loadAsync(f);
+  const list = Object.keys(packZip.files).filter(n => !packZip.files[n].dir);
+  document.getElementById('packTree').innerHTML = list.map(n => 
+    `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
+      <span style="word-break:break-all;flex:1;">${n}</span>
+      <button onclick="downloadPackFile('${n.replace(/'/g,"\\'")}')" style="padding:4px 8px;font-size:11px;margin-left:8px;">Download</button>
+    </div>`).join('') || '<div style="color:var(--dim);">Empty</div>';
+  setStatus('packStatus2', list.length + ' files', 'ok');
+};
+document.getElementById('exportMcpack').onclick = async () => {
+  if (!packZip) return setStatus('exportPackStatus', 'Open a pack first', 'err');
+  const blob = await packZip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('packExportName').value || 'edited.mcpack'; a.click();
+  setStatus('exportPackStatus', 'Exported', 'ok');
+};
+
+// === BrArchive v2 (correct fixed-256-byte format) ===
+// Source: https://github.com/bedrock-crustaceans/brarchive/blob/main/FORMAT.md
+const MAGIC = new Uint8Array([0x7d, 0x27, 0x25, 0xb1, 0xa0, 0x52, 0x70, 0x26]);
+let brEntries = [];
+
+function parseBrarchive(buf) {
+  const view = new DataView(buf);
+  const u8 = new Uint8Array(buf);
+  for (let i = 0; i < 8; i++) if (u8[i] !== MAGIC[i]) throw new Error('Bad magic');
+  const num = view.getUint32(8, true);
+  const version = view.getUint32(12, true);
+  if (version !== 1) throw new Error('Unsupported version: ' + version);
+  const entries = [];
+  const contentBase = 16 + num * 256;
+  for (let i = 0; i < num; i++) {
+    const descOff = 16 + i * 256;
+    const nameLen = u8[descOff];
+    if (nameLen > 247) throw new Error('Name too long');
+    const nameBytes = u8.slice(descOff + 1, descOff + 1 + nameLen);
+    const name = new TextDecoder().decode(nameBytes);
+    const contentOffset = view.getUint32(descOff + 248, true);
+    const contentLen = view.getUint32(descOff + 252, true);
+    let content = new Uint8Array(0);
+    if (contentLen > 0) {
+      const start = contentBase + contentOffset;
+      if (start + contentLen > u8.length) throw new Error('Content out of bounds');
+      content = u8.slice(start, start + contentLen);
+    }
+    entries.push({ name, content });
+  }
+  return entries;
+}
+
+function buildBrarchive(entries) {
+  const num = entries.length;
+  let contentSize = 0;
+  const offsets = [];
+  entries.forEach(e => {
+    offsets.push(contentSize);
+    contentSize += e.content.length;
+  });
+  const totalSize = 16 + num * 256 + contentSize;
+  const buf = new ArrayBuffer(totalSize);
+  const view = new DataView(buf);
+  const u8 = new Uint8Array(buf);
+  u8.set(MAGIC, 0);
+  view.setUint32(8, num, true);
+  view.setUint32(12, 1, true);
+  let contentPos = 16 + num * 256;
+  entries.forEach((e, i) => {
+    const descOff = 16 + i * 256;
+    const nameBytes = new TextEncoder().encode(e.name);
+    const nameLen = Math.min(nameBytes.length, 247);
+    u8[descOff] = nameLen;
+    u8.set(nameBytes.subarray(0, nameLen), descOff + 1);
+    view.setUint32(descOff + 248, offsets[i], true);
+    view.setUint32(descOff + 252, e.content.length, true);
+    if (e.content.length) {
+      u8.set(e.content, contentPos);
+      contentPos += e.content.length;
+    }
+  });
+  return buf;
+}
+function renderBrEntries() {
+  const list = document.getElementById('entryList');
+  document.getElementById('entryCount').textContent = brEntries.length;
+  if (!brEntries.length) { list.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">No files</div>'; return; }
+  list.innerHTML = brEntries.map((e, i) => `
+    <div style="border:1px solid var(--line);border-radius:6px;margin-bottom:8px;padding:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${e.name} <small style="color:var(--dim);">(${e.content.length} bytes)</small></span>
+        <button onclick="downloadBrEntry(${i})" style="padding:4px 8px;font-size:11px;">Download</button>
+      </div>
+    </div>`).join('');
+}
+window.downloadBrEntry = (i) => {
+  const e = brEntries[i];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([e.content]));
+  a.download = e.name.split('/').pop(); a.click();
+};
+document.getElementById('openBrBtn').onclick = () => {
+  const input = document.getElementById('openBr');
+  input.value = '';
+  input.click();
+};
+document.getElementById('addFilesBtn').onclick = () => {
+  const input = document.getElementById('addFiles');
+  input.value = '';
+  input.click();
+};
+document.getElementById('openBr').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const buf = await f.arrayBuffer();
+    brEntries = parseBrarchive(buf);
+    renderBrEntries();
+    setStatus('brLoadStatus', brEntries.length + ' entries loaded', 'ok');
+  } catch (err) { setStatus('brLoadStatus', err.message, 'err'); }
+};
+document.getElementById('newBrBtn').onclick = () => { brEntries = []; renderBrEntries(); setStatus('brLoadStatus', 'New archive', 'ok'); };
+document.getElementById('langFromJson').onclick = () => {
+  try {
+    const obj = JSON.parse(document.getElementById('langInput').value);
+    document.getElementById('langOutput').value = Object.entries(obj).map(([k,v]) => k + '=' + v).join('\n');
+    setStatus('langStatus', 'Converted from JSON', 'ok');
+  } catch (e) { setStatus('langStatus', 'Invalid JSON', 'err'); }
+};
+
+document.getElementById('packBtn').onclick = () => {
+  if (!brEntries.length) return setStatus('packStatus', 'No entries', 'err');
+  const buf = buildBrarchive(brEntries);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf]));
+  a.download = document.getElementById('outputName').value || 'output.brarchive';
+  a.click();
+  setStatus('packStatus', 'Packed', 'ok');
+};
+
+document.getElementById('zipBtn').onclick = () => {
+  if (!brEntries.length) return setStatus('packStatus', 'No entries', 'err');
+  const zip = new JSZip();
+  brEntries.forEach(e => zip.file(e.name, e.content));
+  zip.generateAsync({ type: 'blob' }).then(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (document.getElementById('outputName').value || 'output').replace(/\.brarchive$/, '') + '.zip';
+    a.click();
+    setStatus('packStatus', 'ZIP exported', 'ok');
+  });
+};
+
+// Pack Explorer (improved)
+document.getElementById('openPackBtn').onclick = () => {
+  const input = document.getElementById('openPack');
+  input.value = '';
+  input.click();
+};
+document.getElementById('openPack').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  packZip = await JSZip.loadAsync(f);
+  const list = Object.keys(packZip.files).filter(n => !packZip.files[n].dir);
+  document.getElementById('packTree').innerHTML = list.map(n => 
+    `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;">
+      <span>${n}</span>
+      <button onclick="downloadPackFile('${n.replace(/'/g,"\\'")}')" style="padding:3px 8px;font-size:11px;">Download</button>
+    </div>`).join('') || '<div style="color:var(--dim);">Empty</div>';
+  setStatus('packStatus2', list.length + ' files', 'ok');
+};
+window.downloadPackFile = async (name) => {
+  const file = packZip.file(name);
+  if (!file) return;
+  const blob = await file.async('blob');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name.split('/').pop(); a.click();
+};
+} catch (err) {
+  const el = document.getElementById('loadStatus');
+  if (el) el.textContent = 'Lỗi: ' + err.message;
+  console.error(err);
+}
+</script>
+</body>
+</html>

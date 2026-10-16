@@ -432,10 +432,10 @@ textarea{min-height:150px;line-height:1.65}
   .mcpack / .mcaddon are ZIP. Manifest follows Microsoft Learn.
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: jszip.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: prism.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: prism-json.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: prism-javascript.min.js. Connect to the internet and reload.';"></script>
 <script>
 try {
 // Tab switching

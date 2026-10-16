@@ -243,6 +243,24 @@ a{color:var(--accent);text-underline-offset:3px}
   .tab{min-height:52px;flex-direction:row;justify-content:flex-start;padding:9px 12px;font-size:12px}
   .tab::before{font-size:16px}
 }
+
+/* App-style mobile bottom navigation */
+.mobile-bottom-nav,.mobile-more-menu{display:none}
+@media(max-width:979px){
+body{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+.tabs{display:none!important}
+.mobile-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid var(--line);box-shadow:0 -8px 28px rgba(0,0,0,.12)}
+.mobile-nav-item{min-width:0;min-height:48px;padding:5px 2px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--dim);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;box-shadow:none!important;transform:none!important}
+.mobile-nav-item span{font-size:18px;line-height:1.1;font-weight:750}
+.mobile-nav-item small{font-family:inherit;font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.mobile-nav-item.active{background:color-mix(in srgb,var(--accent-dim) 82%,var(--panel));color:var(--accent);border-color:color-mix(in srgb,var(--accent) 25%,var(--line))}
+.mobile-more-menu{position:fixed;right:9px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:51;width:min(260px,calc(100vw - 18px));padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 44px rgba(0,0,0,.22)}
+.mobile-more-menu.open{display:grid;grid-template-columns:1fr;gap:4px}
+.mobile-more-menu button{min-height:44px;padding:10px 12px;text-align:left;background:transparent;border-color:transparent;box-shadow:none;font-size:12px}
+.mobile-more-menu button:hover{background:var(--panel2);transform:none}
+main{padding-top:14px}
+}
+@media(min-width:980px){.mobile-bottom-nav,.mobile-more-menu{display:none!important}}
 </style>
 </head>
 <body>
@@ -274,6 +292,19 @@ a{color:var(--accent);text-underline-offset:3px}
   <button class="tab" data-tab="coder">Coder Tools</button>
   <button class="tab" data-tab="settings">Settings</button>
 </div>
+<div class="mobile-more-menu" id="mobileMoreMenu" aria-label="More sections">
+<button type="button" data-mobile-tab="manifest">≡ Manifest</button>
+<button type="button" data-mobile-tab="validator">✓ Validator</button>
+<button type="button" data-mobile-tab="lang">文 Lang &amp; Templates</button>
+<button type="button" data-mobile-tab="settings">⚙ Settings</button>
+</div>
+<nav class="mobile-bottom-nav" aria-label="Main navigation">
+<button type="button" class="mobile-nav-item active" data-mobile-tab="tools"><span>⌘</span><small>Tools</small></button>
+<button type="button" class="mobile-nav-item" data-mobile-tab="brarchive"><span>▤</span><small>BrArchive</small></button>
+<button type="button" class="mobile-nav-item" data-mobile-tab="pack"><span>▣</span><small>Pack Explorer</small></button>
+<button type="button" class="mobile-nav-item" data-mobile-tab="coder"><span>&lt;/&gt;</span><small>Coder</small></button>
+<button type="button" class="mobile-nav-item" id="mobileMoreBtn" aria-expanded="false"><span>•••</span><small>More</small></button>
+</nav>
 
 <main>
   <div id="tab-tools">
@@ -1626,5 +1657,40 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   });
 }
 </script>
+<script>
+(function(){
+const moreButton=document.getElementById('mobileMoreBtn');
+const moreMenu=document.getElementById('mobileMoreMenu');
+const navItems=Array.from(document.querySelectorAll('.mobile-nav-item[data-mobile-tab]'));
+function syncNav(name){
+navItems.forEach(item=>item.classList.toggle('active',item.dataset.mobileTab===name));
+if(moreButton)moreButton.classList.toggle('active',!!moreMenu.querySelector('[data-mobile-tab="'+name+'"]'));
+}
+function openTab(name){
+const target=document.querySelector('.tab[data-tab="'+name+'"]');
+if(target)target.click();
+syncNav(name);
+moreMenu.classList.remove('open');
+moreButton.setAttribute('aria-expanded','false');
+window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('[data-mobile-tab]').forEach(item=>item.addEventListener('click',()=>openTab(item.dataset.mobileTab)));
+moreButton.addEventListener('click',event=>{
+event.stopPropagation();
+const opened=moreMenu.classList.toggle('open');
+moreButton.setAttribute('aria-expanded',String(opened));
+});
+document.querySelectorAll('.tab').forEach(item=>item.addEventListener('click',()=>syncNav(item.dataset.tab)));
+document.addEventListener('click',event=>{
+if(!moreMenu.contains(event.target)&&!moreButton.contains(event.target)){
+moreMenu.classList.remove('open');
+moreButton.setAttribute('aria-expanded','false');
+}
+});
+const activeTab=document.querySelector('.tab.active');
+if(activeTab)syncNav(activeTab.dataset.tab);
+})();
+</script>
+
 </body>
 </html>

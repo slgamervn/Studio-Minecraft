@@ -44,3 +44,17 @@ Bug reports, feature requests, and improvements are welcome. Please open a [GitH
 ---
 
 *Bedrock Coder Studio is an independent community tool and is not affiliated with or endorsed by Mojang or Microsoft.*
+
+## Studio AI (optional online mode)
+
+Studio AI answers common Bedrock questions locally first. For questions outside its built-in knowledge, it can call the optional Cloudflare Pages Function at `/api/ai`.
+
+To enable online answers on a Cloudflare Pages deployment:
+
+1. Deploy this repository with **Cloudflare Pages** using the repository root as the build output directory. The `functions/api/ai.js` file must be included in the deployment; GitHub Pages serves static files only and does not run Pages Functions.
+2. In Cloudflare Pages → **Settings → Variables and Secrets**, add a secret named `OPENAI_API_KEY` containing your own API key. Never put the key in `index.html`, a public repository, or a message.
+3. Optionally set `OPENAI_MODEL` to a model available to your API project. The default is `gpt-4.1-mini`.
+4. Redeploy, then ask Studio AI a question not covered by its local answers.
+
+The backend limits each question to 1,200 characters and keeps the API key on the server. API usage may incur charges and this endpoint does not include a full account system or durable per-user rate limiting, so review usage limits and monitor usage in your API project. If the app remains hosted only on GitHub Pages, the local knowledge answers still work, but online AI requires a separately deployed backend. The online backend has not been live-tested from this repository.
+

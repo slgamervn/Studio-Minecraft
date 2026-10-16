@@ -68,3 +68,21 @@ The Studio interface remains hosted on GitHub Pages. Online AI requests use a se
 - Render free services may sleep after inactivity, so the first request can be slow. Availability and free-plan details can change.
 - GitHub Pages remains static and does not run the backend. The online endpoint must be deployed separately.
 - The backend code has been added to the repository, but a live Render deployment cannot be created or verified from this commit alone.
+
+
+### Multiple AI providers
+
+Studio AI can route requests to OpenAI, Google Gemini, Groq, OpenRouter, Together AI, or Mistral AI. Choose a provider in the Studio AI settings. The backend only uses a provider when its API key is configured in Render; provider keys must never be put in the frontend or committed to GitHub.
+
+Configure any providers you want to use in Render → your service → Environment:
+
+| Provider | Required secret | Optional model variable | Default model |
+| --- | --- | --- | --- |
+| OpenAI | `OPENAI_API_KEY` | `OPENAI_MODEL` | `gpt-4.1-mini` |
+| Google Gemini | `GEMINI_API_KEY` | `GEMINI_MODEL` | `gemini-2.5-flash` |
+| Groq | `GROQ_API_KEY` | `GROQ_MODEL` | `llama-3.3-70b-versatile` |
+| OpenRouter | `OPENROUTER_API_KEY` | `OPENROUTER_MODEL` | `openai/gpt-4o-mini` |
+| Together AI | `TOGETHER_API_KEY` | `TOGETHER_MODEL` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| Mistral AI | `MISTRAL_API_KEY` | `MISTRAL_MODEL` | `mistral-small-latest` |
+
+Add only the keys for providers you intend to use, then redeploy the Render service. Each provider may require its own account, enabled API access, billing or credits, and model availability. A healthy `/health` endpoint confirms the server is running, not that every provider key is valid.

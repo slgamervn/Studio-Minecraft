@@ -919,21 +919,21 @@ function stripJsonComments(source) {
     if (inString) {
       out += c;
       if (escaped) escaped = false;
-      else if (c === '\\\\') escaped = true;
+      else if (c === '\\') escaped = true;
       else if (c === '"') inString = false;
       continue;
     }
     if (c === '"') { inString = true; out += c; continue; }
     if (c === '/' && n === '/') {
       out += '  '; i += 1;
-      while (i + 1 < source.length && source[i + 1] !== '\\n' && source[i + 1] !== '\\r') { out += ' '; i++; }
+      while (i + 1 < source.length && source[i + 1] !== '\n' && source[i + 1] !== '\r') { out += ' '; i++; }
       continue;
     }
     if (c === '/' && n === '*') {
       out += '  '; i += 1;
       while (i + 1 < source.length) {
         if (source[i] === '*' && source[i + 1] === '/') { out += '  '; i++; break; }
-        out += source[i] === '\\n' || source[i] === '\\r' ? source[i] : ' ';
+        out += source[i] === '\n' || source[i] === '\r' ? source[i] : ' ';
         i++;
       }
       continue;
@@ -943,7 +943,7 @@ function stripJsonComments(source) {
   return out;
 }
 function parseJsonWithComments(source) {
-  return JSON.parse(stripJsonComments(source).replace(/,\\s*([}\\]])/g, '$1'));
+  return JSON.parse(stripJsonComments(source).replace(/,\s*([}\]])/g, '$1'));
 }
 function validatorT(key, fallback) {
   const lang = document.getElementById('langSelect').value || 'vi';

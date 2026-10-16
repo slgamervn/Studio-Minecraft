@@ -1248,8 +1248,12 @@ function renderBrEntries() {
       const check = document.createElement('button');
       check.textContent = '✓ Check JSON';
       check.onclick = () => {
-        try { JSON.parse(area.value); setStatus('brLoadStatus', 'Valid JSON: ' + entry.name, 'ok'); }
-        catch (error) { setStatus('brLoadStatus', 'JSON error: ' + error.message, 'err'); }
+        try {
+          const parsed = JSON.parse(area.value);
+          const notes = window.StudioCompatibility && window.StudioCompatibility.checkManifest(parsed) || [];
+          if (notes.length) setStatus('brLoadStatus', 'Valid JSON; compatibility notes: ' + notes.map(issue => issue.message).join(' · '), 'err');
+          else setStatus('brLoadStatus', 'Valid JSON: ' + entry.name, 'ok');
+        } catch (error) { setStatus('brLoadStatus', 'JSON error: ' + error.message, 'err'); }
       };
       const format = document.createElement('button');
       format.textContent = 'Format JSON';
@@ -1402,6 +1406,9 @@ function validateManifestObject(obj, path, issues, allUuids) {
       else if (typeof d.module_name !== 'string' && typeof d.uuid !== 'string') add('ERROR', 'dependencies[' + i + '] cần module_name hoặc uuid.');
       if (d && d.version !== undefined && !Array.isArray(d.version) && typeof d.version !== 'string') add('WARN', 'dependencies[' + i + '].version có kiểu dữ liệu lạ.');
     });
+  }
+  if (window.StudioCompatibility && typeof window.StudioCompatibility.checkManifest === 'function') {
+    window.StudioCompatibility.checkManifest(obj).forEach(issue => add(issue.level, issue.message));
   }
 }
 function renderValidatorResults(issues, fileCount) {

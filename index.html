@@ -2188,7 +2188,9 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     lastRequest=Date.now();waiting=true;
     const pending=document.createElement('div');pending.className='studio-ai-msg bot';pending.textContent='Đang suy nghĩ…';messages.appendChild(pending);messages.scrollTop=messages.scrollHeight;
     try{
-      const backend=getBackendUrl();\n      if(!backend)throw new Error('Hãy mở Cấu hình AI trực tuyến, nhập URL Render, rồi nhấn Lưu URL.');\n      const res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+      const backend=getBackendUrl();
+      if(!backend)throw new Error('Hãy mở Cấu hình AI trực tuyến, nhập URL Render, rồi nhấn Lưu URL.');
+      const res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
       let data={};try{data=await res.json();}catch(_){}
       pending.remove();
       if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');

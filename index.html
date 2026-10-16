@@ -2079,12 +2079,22 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     <button type="button" data-ai-question="Script API version chọn thế nào?">Script API</button>
     <button type="button" data-ai-question="Làm sao giữ achievement-friendly?">Achievement-friendly</button>
   </div>
-  <form id="studioAiForm" class="studio-ai-form"><input id="studioAiInput" type="text" autocomplete="off" maxlength="500" placeholder="Hỏi về Minecraft Bedrock..." aria-label="Câu hỏi cho Studio AI" required><button class="primary" type="submit">Gửi</button></form>
+  <details style="padding:0 12px 9px;font-size:11px;color:var(--dim)">
+    <summary style="cursor:pointer">Cấu hình AI trực tuyến</summary>
+    <label for="studioAiBackendUrl" style="display:block;margin:8px 0 4px">Backend URL (Render)</label>
+    <input id="studioAiBackendUrl" type="url" inputmode="url" placeholder="https://ten-dich-vu.onrender.com" autocomplete="url" style="width:100%;min-width:0">
+    <div style="display:flex;gap:6px;margin-top:7px">
+      <button type="button" id="studioAiSaveBackend" class="primary">Lưu URL</button>
+      <button type="button" id="studioAiTestBackend">Kiểm tra kết nối</button>
+    </div>
+    <div id="studioAiBackendStatus" role="status" style="margin-top:6px">Chưa cấu hình backend; câu trả lời ngoại tuyến vẫn dùng được.</div>
+  </details>
+  <form id="studioAiForm" class="studio-ai-form"><input id="studioAiInput" type="text" autocomplete="off" maxlength="1200" placeholder="Hỏi về Minecraft Bedrock..." aria-label="Câu hỏi cho Studio AI" required><button class="primary" type="submit">Gửi</button></form>
 </div>
 <button type="button" id="studioAiFab" class="studio-ai-fab" aria-expanded="false" aria-controls="studioAiPanel">✦ Studio AI</button>
 <script>
 (function(){
-  const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput');
+  const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput'),backendInput=document.getElementById('studioAiBackendUrl'),backendStatus=document.getElementById('studioAiBackendStatus'),saveBackend=document.getElementById('studioAiSaveBackend'),testBackend=document.getElementById('studioAiTestBackend');
   if(!panel||!fab||!messages||!form||!input)return;
   const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9@._-]+/g,' ').trim();
   const kb=[
@@ -2106,7 +2116,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     for(const item of kb){let score=0;for(const key of item.keys){const k=norm(key);if(n===k)score+=5;else if(n.includes(k))score+=Math.max(2,Math.min(4,k.split(' ').length));else if(k.split(' ').length>1&&k.split(' ').every(w=>n.includes(w)))score+=2;}if(score>bestScore){best=item;bestScore=score;}}
     return best&&bestScore>=2?best.answer:null;
   }
-  let waiting=false,lastRequest=0;
+  const BACKEND_KEY='studio_ai_backend_url_v1';\n  function cleanBackendUrl(value){const raw=String(value||'').trim().replace(/\\/+$/,'');if(!raw)return '';const u=new URL(raw);if(u.protocol!=='https:'&&!(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)))throw new Error('Dùng URL HTTPS của backend (hoặc localhost khi thử trên máy).');return u.origin+u.pathname.replace(/\\/+$/,'');}\n  function getBackendUrl(){try{return cleanBackendUrl(localStorage.getItem(BACKEND_KEY)||'');}catch(_){return '';}}\n  function setBackendStatus(text){if(backendStatus)backendStatus.textContent=text;}\n  if(backendInput)backendInput.value=getBackendUrl();\n  if(getBackendUrl())setBackendStatus('Đã lưu URL backend. Nhấn Kiểm tra kết nối để xác nhận.');\n  if(saveBackend)saveBackend.addEventListener('click',()=>{try{const url=cleanBackendUrl(backendInput.value);if(!url)throw new Error('Nhập URL backend trước.');localStorage.setItem(BACKEND_KEY,url);backendInput.value=url;setBackendStatus('Đã lưu URL trên thiết bị này.');}catch(e){setBackendStatus(e.message||'URL không hợp lệ.');}});\n  if(testBackend)testBackend.addEventListener('click',async()=>{let url;try{url=cleanBackendUrl(backendInput.value||getBackendUrl());if(!url)throw new Error('Nhập và lưu URL backend trước.');}catch(e){setBackendStatus(e.message);return;}setBackendStatus('Đang kiểm tra…');try{const res=await fetch(url+'/health',{method:'GET'});const data=await res.json();if(!res.ok||!data.ok)throw new Error('Backend chưa sẵn sàng.');setBackendStatus('Kết nối thành công. Backend đang hoạt động.');}catch(_){setBackendStatus('Chưa kết nối được. Kiểm tra URL, trạng thái Render và ALLOWED_ORIGIN.');}});\n  let waiting=false,lastRequest=0;
   async function send(q){
     q=String(q||'').trim();if(!q||waiting)return;
     addMessage(q,'user');
@@ -2116,7 +2126,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     lastRequest=Date.now();waiting=true;
     const pending=document.createElement('div');pending.className='studio-ai-msg bot';pending.textContent='Đang suy nghĩ…';messages.appendChild(pending);messages.scrollTop=messages.scrollHeight;
     try{
-      const res=await fetch('./api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+      const backend=getBackendUrl();\n      if(!backend)throw new Error('Hãy mở Cấu hình AI trực tuyến, nhập URL Render, rồi nhấn Lưu URL.');\n      const res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
       let data={};try{data=await res.json();}catch(_){}
       pending.remove();
       if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');

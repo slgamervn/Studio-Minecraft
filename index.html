@@ -168,24 +168,24 @@ textarea:focus,input:focus,select:focus{border-color:var(--accent);}
 
   <div id="tab-validator" class="hidden">
     <div class="card">
-      <h2>Add-on Validator</h2>
-      <p style="font-size:12px;color:var(--dim);">Kiểm tra JSON, manifest.json, UUID, module, phiên bản và đường dẫn script. Kết quả là kiểm tra tĩnh, không thay thế việc thử pack trong Minecraft.</p>
+      <h2 id="validatorTitle">Add-on Validator</h2>
+      <p id="validatorDesc" style="font-size:12px;color:var(--dim);"></p>
       <div class="row">
-        <button id="validatorOpenBtn" class="primary">📂 Chọn .mcpack / .mcaddon / .zip</button>
+        <button id="validatorOpenBtn" class="primary">Choose .mcpack / .mcaddon / .zip</button>
         <input type="file" id="validatorFile" accept=".mcpack,.mcaddon,.zip" style="display:none">
-        <button id="validatorRunBtn">Kiểm tra pack</button>
+        <button id="validatorRunBtn">Validate pack</button>
       </div>
-      <div class="status" id="validatorFileStatus">Chưa chọn pack.</div>
-      <h2 style="margin-top:16px;">Hoặc dán manifest.json</h2>
-      <textarea id="validatorManifestInput" placeholder='Dán nội dung manifest.json vào đây...'></textarea>
+      <div class="status" id="validatorFileStatus">No pack selected.</div>
+      <h2 id="validatorOrManifest" style="margin-top:16px;"></h2>
+      <textarea id="validatorManifestInput" placeholder='Paste manifest.json content here...'></textarea>
       <div class="row" style="margin-top:8px;">
-        <button id="validatorManifestBtn" class="primary">Kiểm tra manifest</button>
-        <button id="validatorClearBtn">Xoá kết quả</button>
+        <button id="validatorManifestBtn" class="primary">Validate manifest</button>
+        <button id="validatorClearBtn">Clear results</button>
       </div>
     </div>
     <div class="card">
-      <h2>Kết quả kiểm tra</h2>
-      <div id="validatorSummary" class="status">Chưa chạy kiểm tra.</div>
+      <h2 id="validatorResultsTitle">Validation results</h2>
+      <div id="validatorSummary" class="status">Not checked yet.</div>
       <div id="validatorResults" style="font-size:12px;overflow-wrap:anywhere;"></div>
     </div>
   </div>
@@ -358,6 +358,7 @@ const storage = {
 };
 const I18N = {
   vi: {
+    validatorTitle:'Kiểm tra Add-on', validatorDesc:'Kiểm tra JSON (bỏ qua chú thích // và /* */), manifest.json, UUID, module, phiên bản và đường dẫn script. Đây là kiểm tra tĩnh, không thay thế việc thử pack trong Minecraft.', validatorOpen:'📂 Chọn .mcpack / .mcaddon / .zip', validatorRun:'Kiểm tra pack', validatorNoPack:'Chưa chọn pack.', validatorOrManifest:'Hoặc dán manifest.json', validatorPaste:'Dán nội dung manifest.json vào đây...', validatorManifest:'Kiểm tra manifest', validatorClear:'Xoá kết quả', validatorResults:'Kết quả kiểm tra', validatorNotRun:'Chưa chạy kiểm tra.', validatorSelectFirst:'Hãy chọn một file .mcpack, .mcaddon hoặc .zip trước.', validatorOpened:'Đã mở', validatorArchiveError:'Không đọc được archive:', validatorJsonError:'JSON không hợp lệ:', validatorReadError:'Không đọc được file:', validatorNoJson:'Không tìm thấy file JSON nào trong archive.', validatorNoManifest:'Không tìm thấy manifest.json.', validatorMultiManifest:'Tìm thấy nhiều manifest.json; hãy kiểm tra cấu trúc add-on.', validatorNoIssues:'Không phát hiện lỗi trong các quy tắc kiểm tra tĩnh hiện có. Điều này không đảm bảo pack chạy đúng trong game.', validatorErrors:'lỗi', validatorWarnings:'cảnh báo', validatorFiles:'file JSON'
     subtitle: 'Công cụ cho coder Minecraft Bedrock',
     tools: 'Công cụ', brarchive: 'BrArchive', pack: 'Khám phá Pack', manifest: 'Manifest',
     lang: 'Lang & Mẫu', coder: 'Công cụ Coder', settings: 'Cài đặt',
@@ -371,6 +372,7 @@ const I18N = {
     showSnippet: 'Hiện đoạn code', ready: 'Sẵn sàng'
   },
   en: {
+    validatorTitle:'Add-on Validator', validatorDesc:'Checks JSON (ignores // and /* */ comments), manifest.json, UUIDs, modules, versions and script paths. Static checks cannot replace testing in Minecraft.', validatorOpen:'📂 Choose .mcpack / .mcaddon / .zip', validatorRun:'Validate pack', validatorNoPack:'No pack selected.', validatorOrManifest:'Or paste manifest.json', validatorPaste:'Paste manifest.json content here...', validatorManifest:'Validate manifest', validatorClear:'Clear results', validatorResults:'Validation results', validatorNotRun:'Not checked yet.', validatorSelectFirst:'Choose a .mcpack, .mcaddon or .zip file first.', validatorOpened:'Opened', validatorArchiveError:'Could not read archive:', validatorJsonError:'Invalid JSON:', validatorReadError:'Could not read file:', validatorNoJson:'No JSON files found in archive.', validatorNoManifest:'manifest.json not found.', validatorMultiManifest:'Multiple manifest.json files found; check the add-on structure.', validatorNoIssues:'No issues found by the current static checks. This does not guarantee the pack works in-game.', validatorErrors:'errors', validatorWarnings:'warnings', validatorFiles:'JSON files'
     subtitle: 'Tools for Minecraft Bedrock coders',
     tools: 'Tools', brarchive: 'BrArchive', pack: 'Pack Explorer', manifest: 'Manifest',
     lang: 'Lang & Templates', coder: 'Coder Tools', settings: 'Settings',
@@ -384,6 +386,7 @@ const I18N = {
     showSnippet: 'Show Snippet', ready: 'Ready'
   },
   zh: {
+    validatorTitle:'附加包检查器', validatorDesc:'检查 JSON（忽略 // 和 /* */ 注释）、manifest.json、UUID、模块、版本和脚本路径。静态检查不能代替游戏内测试。', validatorOpen:'📂 选择 .mcpack / .mcaddon / .zip', validatorRun:'检查附加包', validatorNoPack:'尚未选择附加包。', validatorOrManifest:'或粘贴 manifest.json', validatorPaste:'在此粘贴 manifest.json 内容...', validatorManifest:'检查 manifest', validatorClear:'清除结果', validatorResults:'检查结果', validatorNotRun:'尚未检查。', validatorSelectFirst:'请先选择 .mcpack、.mcaddon 或 .zip 文件。', validatorOpened:'已打开', validatorArchiveError:'无法读取压缩包：', validatorJsonError:'JSON 无效：', validatorReadError:'无法读取文件：', validatorNoJson:'压缩包中未找到 JSON 文件。', validatorNoManifest:'未找到 manifest.json。', validatorMultiManifest:'发现多个 manifest.json，请检查附加包结构。', validatorNoIssues:'当前静态检查未发现问题，但不保证附加包能在游戏中正常运行。', validatorErrors:'个错误', validatorWarnings:'个警告', validatorFiles:'个 JSON 文件'
     subtitle: 'Minecraft 基岩版开发工具',
     tools: '工具', brarchive: 'BrArchive', pack: '包浏览器', manifest: '清单',
     lang: '语言与模板', coder: '开发工具', settings: '设置',
@@ -397,6 +400,7 @@ const I18N = {
     showSnippet: '显示片段', ready: '就绪'
   },
   es: {
+    validatorTitle:'Validador de Add-ons', validatorDesc:'Comprueba JSON (ignora comentarios // y /* */), manifest.json, UUID, módulos, versiones y rutas de scripts. La validación estática no sustituye las pruebas en Minecraft.', validatorOpen:'📂 Elegir .mcpack / .mcaddon / .zip', validatorRun:'Validar pack', validatorNoPack:'No hay ningún pack seleccionado.', validatorOrManifest:'O pegar manifest.json', validatorPaste:'Pega aquí el contenido de manifest.json...', validatorManifest:'Validar manifest', validatorClear:'Borrar resultados', validatorResults:'Resultados', validatorNotRun:'Aún no se ha comprobado.', validatorSelectFirst:'Primero elige un archivo .mcpack, .mcaddon o .zip.', validatorOpened:'Abierto', validatorArchiveError:'No se pudo leer el archivo:', validatorJsonError:'JSON no válido:', validatorReadError:'No se pudo leer el archivo:', validatorNoJson:'No se encontraron archivos JSON.', validatorNoManifest:'No se encontró manifest.json.', validatorMultiManifest:'Se encontraron varios manifest.json; revisa la estructura.', validatorNoIssues:'No se detectaron problemas en las comprobaciones actuales. Esto no garantiza que funcione en el juego.', validatorErrors:'errores', validatorWarnings:'avisos', validatorFiles:'archivos JSON'
     subtitle: 'Herramientas para coders de Minecraft Bedrock',
     tools: 'Herramientas', brarchive: 'BrArchive', pack: 'Explorador', manifest: 'Manifiesto',
     lang: 'Lang y Plantillas', coder: 'Herramientas Coder', settings: 'Ajustes',
@@ -410,6 +414,7 @@ const I18N = {
     showSnippet: 'Mostrar Fragmento', ready: 'Listo'
   },
   id: {
+    validatorTitle:'Validator Add-on', validatorDesc:'Memeriksa JSON (mengabaikan komentar // dan /* */), manifest.json, UUID, modul, versi, dan jalur skrip. Pemeriksaan statis tidak menggantikan pengujian di Minecraft.', validatorOpen:'📂 Pilih .mcpack / .mcaddon / .zip', validatorRun:'Periksa pack', validatorNoPack:'Belum ada pack dipilih.', validatorOrManifest:'Atau tempel manifest.json', validatorPaste:'Tempel isi manifest.json di sini...', validatorManifest:'Periksa manifest', validatorClear:'Hapus hasil', validatorResults:'Hasil pemeriksaan', validatorNotRun:'Belum diperiksa.', validatorSelectFirst:'Pilih file .mcpack, .mcaddon, atau .zip terlebih dahulu.', validatorOpened:'Dibuka', validatorArchiveError:'Arsip tidak dapat dibaca:', validatorJsonError:'JSON tidak valid:', validatorReadError:'File tidak dapat dibaca:', validatorNoJson:'Tidak ditemukan file JSON dalam arsip.', validatorNoManifest:'manifest.json tidak ditemukan.', validatorMultiManifest:'Ditemukan beberapa manifest.json; periksa struktur add-on.', validatorNoIssues:'Tidak ditemukan masalah dalam pemeriksaan statis saat ini. Ini tidak menjamin pack berfungsi di game.', validatorErrors:'kesalahan', validatorWarnings:'peringatan', validatorFiles:'file JSON'
     subtitle: 'Alat untuk coder Minecraft Bedrock',
     tools: 'Alat', brarchive: 'BrArchive', pack: 'Penjelajah Pack', manifest: 'Manifest',
     lang: 'Lang & Template', coder: 'Alat Coder', settings: 'Pengaturan',
@@ -428,6 +433,25 @@ function applyLang() {
   const lang = document.getElementById('langSelect').value || 'vi';
   const t = I18N[lang] || I18N.vi;
   document.getElementById('loadStatus').textContent = t.ready;
+  const validatorText = {
+    validatorTitle: 'validatorTitle', validatorDesc: 'validatorDesc', validatorOpenBtn: 'validatorOpen',
+    validatorRunBtn: 'validatorRun', validatorFileStatus: 'validatorNoPack', validatorOrManifest: 'validatorOrManifest',
+    validatorManifestBtn: 'validatorManifest', validatorClearBtn: 'validatorClear', validatorResultsTitle: 'validatorResults',
+    validatorSummary: 'validatorNotRun'
+  };
+  for (const [id, key] of Object.entries(validatorText)) {
+    const el = document.getElementById(id);
+    if (el && t[key]) {
+      if (id === 'validatorFileStatus' && el.dataset.userStatus) continue;
+      if (id === 'validatorSummary' && el.dataset.userStatus) continue;
+      if (id === 'validatorFileStatus' || id === 'validatorSummary') el.textContent = t[key];
+      else if (id === 'validatorDesc') el.textContent = t[key];
+      else if (id === 'validatorManifestInput') el.placeholder = t[key];
+      else el.textContent = t[key];
+    }
+  }
+  const manifestInput = document.getElementById('validatorManifestInput');
+  if (manifestInput && t.validatorPaste) manifestInput.placeholder = t.validatorPaste;
   document.querySelectorAll('.tab').forEach(tab => {
     const key = tab.dataset.tab;
     if (t[key]) tab.textContent = t[key];
@@ -868,11 +892,11 @@ function renderValidatorResults(issues, fileCount) {
   const errors = issues.filter(x => x.level === 'ERROR').length;
   const warnings = issues.filter(x => x.level === 'WARN').length;
   const summary = document.getElementById('validatorSummary');
-  summary.textContent = errors + ' lỗi · ' + warnings + ' cảnh báo' + (fileCount === undefined ? '' : ' · ' + fileCount + ' file JSON');
+  summary.textContent = errors + ' ' + validatorT('validatorErrors', 'errors') + ' · ' + warnings + ' ' + validatorT('validatorWarnings', 'warnings') + (fileCount === undefined ? '' : ' · ' + fileCount + ' ' + validatorT('validatorFiles', 'JSON files'));
   summary.className = 'status ' + (errors ? 'err' : 'ok');
   const out = document.getElementById('validatorResults');
   if (!issues.length) {
-    out.textContent = 'Không phát hiện lỗi trong các quy tắc kiểm tra tĩnh hiện có. Điều này không đảm bảo pack chạy đúng trong game.';
+    out.textContent = validatorT('validatorNoIssues', 'No issues found by current static checks.');
     return;
   }
   out.replaceChildren();
@@ -888,11 +912,48 @@ function renderValidatorResults(issues, fileCount) {
     out.appendChild(row);
   });
 }
+function stripJsonComments(source) {
+  let out = '', inString = false, escaped = false;
+  for (let i = 0; i < source.length; i++) {
+    const c = source[i], n = source[i + 1];
+    if (inString) {
+      out += c;
+      if (escaped) escaped = false;
+      else if (c === '\\\\') escaped = true;
+      else if (c === '"') inString = false;
+      continue;
+    }
+    if (c === '"') { inString = true; out += c; continue; }
+    if (c === '/' && n === '/') {
+      out += '  '; i += 1;
+      while (i + 1 < source.length && source[i + 1] !== '\\n' && source[i + 1] !== '\\r') { out += ' '; i++; }
+      continue;
+    }
+    if (c === '/' && n === '*') {
+      out += '  '; i += 1;
+      while (i + 1 < source.length) {
+        if (source[i] === '*' && source[i + 1] === '/') { out += '  '; i++; break; }
+        out += source[i] === '\\n' || source[i] === '\\r' ? source[i] : ' ';
+        i++;
+      }
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+function parseJsonWithComments(source) {
+  return JSON.parse(stripJsonComments(source).replace(/,\\s*([}\\]])/g, '$1'));
+}
+function validatorT(key, fallback) {
+  const lang = document.getElementById('langSelect').value || 'vi';
+  return (I18N[lang] && I18N[lang][key]) || (I18N.vi && I18N.vi[key]) || fallback;
+}
 function validateManifestText(raw, path = 'manifest.json', allUuids = new Set()) {
   const issues = [];
   let obj;
-  try { obj = JSON.parse(raw); }
-  catch (e) { issues.push({ level: 'ERROR', path, message: 'JSON không hợp lệ: ' + e.message }); renderValidatorResults(issues); return; }
+  try { obj = parseJsonWithComments(raw);
+  catch (e) { issues.push({ level: 'ERROR', path, message: validatorT('validatorJsonError', 'Invalid JSON:') + ' ' + e.message }); renderValidatorResults(issues); return; }
   validateManifestObject(obj, path, issues, allUuids);
   renderValidatorResults(issues);
 }
@@ -907,15 +968,16 @@ document.getElementById('validatorFile').onchange = async e => {
   try {
     validatorZip = await JSZip.loadAsync(file);
     validatorFileName = file.name;
-    document.getElementById('validatorFileStatus').textContent = 'Đã mở ' + file.name + ' (' + Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir).length + ' file).';
+    document.getElementById('validatorFileStatus').dataset.userStatus = '1';
+    document.getElementById('validatorFileStatus').textContent = validatorT('validatorOpened', 'Opened') + ' ' + file.name + ' (' + Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir).length + ' files).';
     setStatus('validatorFileStatus', 'Đã mở ' + file.name, 'ok');
   } catch (err) {
     validatorZip = null;
-    setStatus('validatorFileStatus', 'Không đọc được archive: ' + err.message, 'err');
+    setStatus('validatorFileStatus', validatorT('validatorArchiveError', 'Could not read archive:') + ' ' + err.message, 'err');
   }
 };
 document.getElementById('validatorRunBtn').onclick = async () => {
-  if (!validatorZip) return setStatus('validatorFileStatus', 'Hãy chọn một file .mcpack, .mcaddon hoặc .zip trước.', 'err');
+  if (!validatorZip) return setStatus('validatorFileStatus', validatorT('validatorSelectFirst', 'Choose a pack first.'), 'err');
   const issues = [];
   const files = Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir);
   const jsonFiles = files.filter(n => n.toLowerCase().endsWith('.json'));
@@ -924,18 +986,18 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   for (const path of jsonFiles) {
     let raw;
     try { raw = await validatorZip.file(path).async('string'); }
-    catch (err) { issues.push({ level: 'ERROR', path, message: 'Không đọc được file: ' + err.message }); continue; }
+    catch (err) { issues.push({ level: 'ERROR', path, message: validatorT('validatorReadError', 'Could not read file:') + ' ' + err.message }); continue; }
     let parsed;
-    try { parsed = JSON.parse(raw); }
-    catch (err) { issues.push({ level: 'ERROR', path, message: 'JSON không hợp lệ: ' + err.message }); continue; }
+    try { parsed = parseJsonWithComments(raw);
+    catch (err) { issues.push({ level: 'ERROR', path, message: validatorT('validatorJsonError', 'Invalid JSON:') + ' ' + err.message }); continue; }
     if (path.split('/').pop().toLowerCase() === 'manifest.json') {
       manifestCount++;
       validateManifestObject(parsed, path, issues, uuidSet);
     }
   }
-  if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: 'Không tìm thấy file JSON nào trong archive.' });
-  if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: 'Không tìm thấy manifest.json.' });
-  if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: 'Tìm thấy ' + manifestCount + ' manifest.json; hãy kiểm tra cấu trúc add-on.' });
+  if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorNoJson', 'No JSON files found in archive.') });
+  if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: validatorT('validatorNoManifest', 'manifest.json not found.') });
+  if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorMultiManifest', 'Multiple manifest.json files found; check add-on structure.') });
   renderValidatorResults(issues, jsonFiles.length);
 };
 document.getElementById('validatorManifestBtn').onclick = () => {
@@ -945,8 +1007,9 @@ document.getElementById('validatorManifestBtn').onclick = () => {
 document.getElementById('validatorClearBtn').onclick = () => {
   document.getElementById('validatorManifestInput').value = '';
   document.getElementById('validatorResults').replaceChildren();
-  document.getElementById('validatorSummary').textContent = 'Chưa chạy kiểm tra.';
+  document.getElementById('validatorSummary').textContent = validatorT('validatorNotRun', 'Not checked yet.');
   document.getElementById('validatorSummary').className = 'status';
+  delete document.getElementById('validatorSummary').dataset.userStatus;
 };
 
 // Pack Explorer (improved)

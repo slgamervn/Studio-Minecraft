@@ -1,4 +1,4 @@
-const CACHE = 'mc-tools-v2';
+const CACHE = 'mc-tools-v3';
 const ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {

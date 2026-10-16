@@ -212,6 +212,8 @@ textarea{min-height:150px;line-height:1.65}
         </div>
         <textarea id="packEditContent" spellcheck="false" placeholder="Choose a text file to edit..." style="min-height:220px;margin-top:8px;"></textarea>
         <div class="row" style="margin-top:8px;">
+          <button id="packFormatJson">Format JSON</button>
+          <button id="packCheckSyntax">Check syntax</button>
           <button id="packSaveEdit" class="primary">Save changes</button>
           <button id="packRenameBtn">Rename path</button>
           <button id="packDeleteBtn">Delete file</button>
@@ -1154,6 +1156,41 @@ document.getElementById('openPack').onchange = async e => {
 };
 document.getElementById('packSearch').oninput = renderPackFiles;
 document.getElementById('packLoadEdit').onclick = () => loadPackTextFile(document.getElementById('packEditPath').value.trim());
+document.getElementById('packFormatJson').onclick = () => {
+  const path = document.getElementById('packEditPath').value.trim();
+  const editor = document.getElementById('packEditContent');
+  if (!/\.json$/i.test(path)) return setStatus('packEditStatus', 'Format JSON only works with .json files.', 'err');
+  try {
+    editor.value = JSON.stringify(parseJsonWithComments(editor.value), null, 2);
+    setStatus('packEditStatus', 'JSON formatted. Save changes to update the archive.', 'ok');
+  } catch (err) {
+    setStatus('packEditStatus', 'JSON parse error: ' + err.message, 'err');
+  }
+};
+document.getElementById('packCheckSyntax').onclick = () => {
+  const path = document.getElementById('packEditPath').value.trim();
+  const editor = document.getElementById('packEditContent');
+  if (/\.json$/i.test(path)) {
+    try {
+      parseJsonWithComments(editor.value);
+      setStatus('packEditStatus', 'JSON syntax looks valid (comments and trailing commas are accepted).', 'ok');
+    } catch (err) {
+      setStatus('packEditStatus', 'JSON syntax error: ' + err.message, 'err');
+    }
+    return;
+  }
+  if (/\.mcfunction$/i.test(path)) return setStatus('packEditStatus', 'MCFunction is plain text; check command syntax in Minecraft.', 'ok');
+  if (/\.(js|mjs|cjs)$/i.test(path)) {
+    try {
+      new Function(editor.value);
+      setStatus('packEditStatus', 'JavaScript parses as a function body. This does not verify Minecraft APIs or runtime behavior.', 'ok');
+    } catch (err) {
+      setStatus('packEditStatus', 'JavaScript syntax error: ' + err.message, 'err');
+    }
+    return;
+  }
+  setStatus('packEditStatus', 'No syntax checker is available for this file type; text was not changed.', 'err');
+};
 document.getElementById('packSaveEdit').onclick = () => {
   if (!packZip) return setStatus('packEditStatus', 'Open a pack first.', 'err');
   const path = document.getElementById('packEditPath').value.trim().replace(/^\/+/, '');

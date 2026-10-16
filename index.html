@@ -261,6 +261,26 @@ body{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
 main{padding-top:14px}
 }
 @media(min-width:980px){.mobile-bottom-nav,.mobile-more-menu{display:none!important}}
+
+/* Studio AI */
+.studio-ai-fab{position:fixed;right:18px;bottom:22px;z-index:1000;border:0;border-radius:999px;background:var(--accent);color:#10201a;font-weight:800;padding:13px 17px;box-shadow:0 8px 28px #0005;cursor:pointer}
+.studio-ai-panel{position:fixed;right:18px;bottom:82px;width:min(390px,calc(100vw - 24px));height:min(570px,calc(100dvh - 110px));z-index:1001;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 55px #0008;display:flex;flex-direction:column;overflow:hidden}
+.studio-ai-panel[hidden]{display:none}
+.studio-ai-head{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:var(--panel2);border-bottom:1px solid var(--line);gap:10px}
+.studio-ai-head strong{color:var(--accent);font-size:14px}
+.studio-ai-head small{display:block;color:var(--dim);font-size:11px}
+.studio-ai-close{padding:4px 10px;min-width:36px}
+.studio-ai-messages{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.studio-ai-msg{max-width:92%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.studio-ai-msg.user{align-self:flex-end;background:var(--accent-dim);border-color:var(--accent-dim)}
+.studio-ai-msg.bot{align-self:flex-start}
+.studio-ai-suggestions{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 10px}
+.studio-ai-suggestions button{font-size:10px;padding:6px 8px;border-radius:999px}
+.studio-ai-form{display:flex;gap:7px;padding:10px;border-top:1px solid var(--line)}
+.studio-ai-form input{flex:1;min-width:0}
+.studio-ai-form button{flex-shrink:0}
+@media(max-width:600px){.studio-ai-fab{right:12px;bottom:78px}.studio-ai-panel{right:8px;bottom:132px;width:calc(100vw - 16px);height:min(62dvh,520px)}}
+
 </style>
 </head>
 <body>
@@ -2049,5 +2069,52 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   init();
 })();
 </script>
+
+<div id="studioAiPanel" class="studio-ai-panel" role="dialog" aria-label="Studio AI" aria-modal="false" hidden>
+  <div class="studio-ai-head"><div><strong>Studio AI</strong><small>Trợ lý Bedrock • hoạt động ngoại tuyến</small></div><button type="button" id="studioAiClose" class="studio-ai-close" aria-label="Đóng">✕</button></div>
+  <div id="studioAiMessages" class="studio-ai-messages" aria-live="polite"></div>
+  <div class="studio-ai-suggestions">
+    <button type="button" data-ai-question="Manifest là gì?">Manifest</button>
+    <button type="button" data-ai-question="Lỗi JSON thì sửa sao?">Lỗi JSON</button>
+    <button type="button" data-ai-question="Script API version chọn thế nào?">Script API</button>
+    <button type="button" data-ai-question="Làm sao giữ achievement-friendly?">Achievement-friendly</button>
+  </div>
+  <form id="studioAiForm" class="studio-ai-form"><input id="studioAiInput" type="text" autocomplete="off" maxlength="500" placeholder="Hỏi về Minecraft Bedrock..." aria-label="Câu hỏi cho Studio AI" required><button class="primary" type="submit">Gửi</button></form>
+</div>
+<button type="button" id="studioAiFab" class="studio-ai-fab" aria-expanded="false" aria-controls="studioAiPanel">✦ Studio AI</button>
+<script>
+(function(){
+  const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput');
+  if(!panel||!fab||!messages||!form||!input)return;
+  const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9@._-]+/g,' ').trim();
+  const kb=[
+    {keys:['manifest','manifest.json','header uuid','module uuid'],answer:'Manifest là tệp mô tả gói Minecraft: Bedrock. Nó khai báo format_version, header, modules, UUID, version và min_engine_version. Mỗi pack cần UUID hợp lệ; UUID của header và từng module không nên trùng nhau. Hãy dùng tab Manifest để tạo hoặc kiểm tra cấu trúc. Lưu ý: format_version của manifest khác với format_version trong các tệp JSON khác.'},
+    {keys:['json','loi json','sua json','parse','syntax error','ngoac','dau phay'],answer:'Để tìm lỗi JSON: kiểm tra dấu ngoặc { } và [ ], dấu phẩy giữa các phần tử, dấu nháy kép quanh key/chuỗi, và không để dấu phẩy cuối. JSON chuẩn không hỗ trợ comment // hoặc /* */. Dán nội dung vào BrArchive hoặc Validator rồi dùng Check JSON; chỉ tự động sửa khi bạn đã xem lại kết quả.'},
+    {keys:['script api','@minecraft/server','server api','api version','dependency','dependencies'],answer:'Phiên bản @minecraft/server độc lập với phiên bản Minecraft Bedrock, nên không thể suy ra chỉ từ số phiên bản game. Kiểm tra tài liệu Microsoft Learn và phiên bản API thực sự hỗ trợ các hàm bạn dùng. Studio có bảng tương thích ngoại tuyến nhưng dữ liệu API lịch sử chỉ là một phần; nếu không có ánh xạ chính xác, đừng đoán phiên bản dependency.'},
+    {keys:['achievement','achievement friendly','thanh tuu','thành tựu','cheat','cheats'],answer:'Muốn giữ add-on theo hướng achievement-friendly, hãy tránh dựa vào bật cheats hoặc thay đổi gamerule/gamemode nếu tính năng không cần. Tuy nhiên, khả năng giữ thành tựu còn phụ thuộc loại pack, phiên bản game, script/API và cách triển khai; không nên cam kết chắc chắn nếu chưa thử trên bản game mục tiêu.'},
+    {keys:['subpack','subpacks','memory tier'],answer:'Subpack cho phép resource pack cung cấp các lựa chọn nội dung khác nhau. Kiểm tra folder_name và name, đồng thời bảo đảm thư mục khớp với cấu hình. Các trường như memory_performance_tier có giới hạn phiên bản và có thể là tính năng thử nghiệm; hãy xem báo cáo Compatibility trong Settings và tài liệu chính thức.'},
+    {keys:['pack setting','custom setting','settings toggle','dropdown','slider'],answer:'Custom pack settings được khai báo trong manifest theo cấu trúc mà phiên bản game hỗ trợ. Các loại thường được tài liệu mô tả gồm label, toggle, slider và dropdown. Kiểm tra type, name, giá trị mặc định và format_version; khả năng hỗ trợ có thể khác nhau theo phiên bản và loại pack.'},
+    {keys:['brarchive','archive','mo mo pack','mo pack','file pack'],answer:'BrArchive trong Studio dùng để xem và chỉnh nội dung tệp được hỗ trợ, kiểm tra/format/minify JSON và quản lý tệp trong phiên làm việc. Sau khi sửa, hãy kiểm tra JSON và rà soát cấu trúc trước khi tải xuống. Công cụ không thể đảm bảo mọi tệp Minecraft đều hợp lệ chỉ bằng cách parse JSON.'},
+    {keys:['format_version','format version','version json','phien ban json'],answer:'format_version thường mô tả phiên bản schema của chính loại tệp đó, không phải trực tiếp phiên bản Minecraft đang cài. Ví dụ schema của entity, item, animation hoặc manifest có thể khác nhau. Hãy kiểm tra tài liệu đúng loại tệp và phiên bản Bedrock mục tiêu.'},
+    {keys:['compatibility','tuong thich','tương thích','version bedrock','minecraft version','ban bedrock'],answer:'Trong Settings, nhập phiên bản Bedrock mục tiêu rồi chọn Check compatibility. Studio ưu tiên dữ liệu đóng gói sẵn và có thể cập nhật dữ liệu khi có mạng. Kết quả “chưa có dữ liệu” nghĩa là chưa xác minh, không đồng nghĩa với không hỗ trợ. Kiểm tra liên kết Microsoft Learn để xác nhận thông tin mới nhất.'},
+    {keys:['pack explorer','pack explorer la gi','explorer'],answer:'Pack Explorer giúp duyệt cấu trúc pack và xem các tệp liên quan. Hãy kiểm tra manifest, thư mục con, tên tệp và đường dẫn tham chiếu; một tệp JSON hợp lệ về cú pháp vẫn có thể sai schema hoặc đặt sai vị trí.'},
+    {keys:['xin chao','chao','hello','hi','hey'],answer:'Chào bạn! Mình là Studio AI, trợ lý ngoại tuyến cho các tác vụ Minecraft Bedrock trong app. Bạn có thể hỏi về Manifest, JSON, Script API, Subpacks, Compatibility hoặc BrArchive.'}
+  ];
+  function addMessage(text,who){const el=document.createElement('div');el.className='studio-ai-msg '+who;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;}
+  function answer(q){
+    const n=norm(q);let best=null,bestScore=0;
+    for(const item of kb){let score=0;for(const key of item.keys){const k=norm(key);if(n===k)score+=5;else if(n.includes(k))score+=Math.max(2,Math.min(4,k.split(' ').length));else if(k.split(' ').length>1&&k.split(' ').every(w=>n.includes(w)))score+=2;}if(score>bestScore){best=item;bestScore=score;}}
+    if(best&&bestScore>=2)return best.answer;
+    return 'Mình chưa có câu trả lời đủ chắc cho câu hỏi này trong bộ kiến thức ngoại tuyến. Bạn thử hỏi cụ thể hơn về Manifest, lỗi JSON, Script API, Subpacks, pack settings, BrArchive hoặc tương thích phiên bản. Đây là trợ lý tra cứu theo bộ quy tắc/kiến thức cục bộ, chưa phải mô hình AI tạo sinh và không gửi câu hỏi của bạn lên máy chủ.';
+  }
+  function send(q){q=String(q||'').trim();if(!q)return;addMessage(q,'user');addMessage(answer(q),'bot');}
+  function setOpen(open){panel.hidden=!open;fab.setAttribute('aria-expanded',String(open));if(open)input.focus();}
+  fab.addEventListener('click',()=>setOpen(panel.hidden));close.addEventListener('click',()=>setOpen(false));
+  form.addEventListener('submit',e=>{e.preventDefault();send(input.value);input.value='';input.focus();});
+  document.querySelectorAll('[data-ai-question]').forEach(b=>b.addEventListener('click',()=>send(b.getAttribute('data-ai-question'))));
+  addMessage('Xin chào! Mình có thể trả lời nhanh một số câu hỏi thường gặp về Minecraft Bedrock và các công cụ trong Studio. Câu trả lời dựa trên kiến thức cục bộ, nên thông tin chưa xác minh sẽ được nói rõ.','bot');
+})();
+</script>
+
 </body>
 </html>

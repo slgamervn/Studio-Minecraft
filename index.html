@@ -636,6 +636,19 @@ main{padding-top:14px}
       </div>
       <div class="status" id="settingsStatus"></div>
     </div>
+    <div class="card" id="compatibilityCard">
+      <h2>Minecraft Compatibility Data</h2>
+      <p style="font-size:12px;color:var(--dim);line-height:1.6;">Offline-first compatibility rules for manifests, subpacks, pack settings, JSON formats and Script API references. Unknown means not yet verified, not unsupported.</p>
+      <div class="row">
+        <label for="compatTargetVersion">Target Bedrock version</label>
+        <input id="compatTargetVersion" type="text" value="1.26.0" placeholder="e.g. 1.26.0" style="max-width:150px;">
+        <button id="compatCheckBtn" class="primary">Check compatibility</button>
+        <button id="compatRefreshBtn">↻ Update data</button>
+      </div>
+      <div id="compatDataStatus" class="status" aria-live="polite">Loading bundled compatibility data…</div>
+      <div id="compatReport" class="status" style="margin-top:8px;line-height:1.7;">Compatibility report will appear here.</div>
+      <div id="compatSources" style="font-size:12px;line-height:1.8;margin-top:8px;"></div>
+    </div>
     <div class="card">
       <h2>Supported Files</h2>
       <p style="font-size:12px;color:var(--dim);line-height:1.6;">
@@ -1871,5 +1884,147 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 })();
 </script>
 
+<script>
+(function () {
+  'use strict';
+  const DATA_URL = './data/minecraft-compat.json';
+  const CACHE_KEY = 'studio-minecraft-compat-v1';
+  let compatibilityData = null;
+  const byId = id => document.getElementById(id);
+  function status(message, isError) {
+    const el = byId('compatDataStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.className = 'status ' + (isError ? 'err' : 'ok');
+  }
+  function safeParse(raw) {
+    try {
+      const value = JSON.parse(raw);
+      return value && value.schema_version === 1 && value.manifest && value.sources ? value : null;
+    } catch (_) { return null; }
+  }
+  function setData(data, label) {
+    compatibilityData = data;
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (_) {}
+    status('Compatibility data ' + data.data_version + ' · ' + label, false);
+    renderSources();
+    renderReport();
+    window.dispatchEvent(new CustomEvent('studio-compatibility-ready', { detail: data }));
+  }
+  async function loadBundled() {
+    try {
+      const response = await fetch(DATA_URL, { cache: 'no-cache' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = safeParse(await response.text());
+      if (!data) throw new Error('Invalid compatibility data schema');
+      setData(data, 'bundled');
+      return true;
+    } catch (_) { return false; }
+  }
+  async function refreshOnline() {
+    status('Checking for updated compatibility data…', false);
+    try {
+      const url = DATA_URL + '?v=' + Date.now();
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = safeParse(await response.text());
+      if (!data) throw new Error('Downloaded data failed schema validation');
+      setData(data, 'online checked');
+    } catch (error) {
+      if (compatibilityData) status('Using ' + compatibilityData.data_version + ' · online update unavailable (' + error.message + ')', false);
+      else status('Could not load bundled data or cache. Check connection and reopen the page.', true);
+    }
+  }
+  function renderSources() {
+    const host = byId('compatSources');
+    if (!host || !compatibilityData) return;
+    host.replaceChildren();
+    const title = document.createElement('strong');
+    title.textContent = 'Official references: ';
+    host.append(title);
+    compatibilityData.sources.forEach((source, index) => {
+      if (index) host.append(document.createTextNode(' · '));
+      const a = document.createElement('a');
+      a.href = source.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = source.id;
+      host.append(a);
+    });
+  }
+  function compareVersion(a, b) {
+    const aa = String(a || '').split('.').map(Number), bb = String(b || '').split('.').map(Number);
+    if (!aa.length || !bb.length || aa.some(Number.isNaN) || bb.some(Number.isNaN)) return null;
+    for (let i=0;i<Math.max(aa.length,bb.length);i++) {
+      const x=aa[i]||0, y=bb[i]||0;
+      if (x<y) return -1; if (x>y) return 1;
+    }
+    return 0;
+  }
+  function renderReport() {
+    const host = byId('compatReport');
+    if (!host || !compatibilityData) return;
+    const target = (byId('compatTargetVersion')?.value || '').trim();
+    const lines = [];
+    lines.push('Data version: ' + compatibilityData.data_version);
+    lines.push('Target: ' + (target || 'not set'));
+    lines.push('Manifest V2: documented stable format for behavior/resource/world-template packs; version fields use integer arrays.');
+    lines.push('Manifest V3: documented as preview in the linked reference; SemVer strings and custom settings are supported by that schema, but verify the actual target game.');
+    const mapped = compatibilityData.script_api.minecraft_to_server_api_partial[target];
+    lines.push(mapped ? 'Official versioning reference mapping: @minecraft/server ' + mapped + ' for Minecraft ' + target + ' (historical partial table).' :
+      'Script API mapping: no exact entry for this target in the bundled partial reference. Do not guess the dependency version.');
+    lines.push('JSON format_version values belong to each file schema and must not be automatically equated with the game version.');
+    host.replaceChildren();
+    lines.forEach(line => { const div=document.createElement('div'); div.textContent='• '+line; host.append(div); });
+  }
+  function checkManifestCompatibility(obj) {
+    const issues = [];
+    if (!compatibilityData || !obj || typeof obj !== 'object') return issues;
+    const rules = compatibilityData.manifest;
+    if (obj.format_version === 3) {
+      if (!obj.metadata || !(Array.isArray(obj.metadata.authors) && obj.metadata.authors.length) ) issues.push({level:'WARN',message:'Manifest V3: official documentation currently notes an author metadata value is required by V3 processing.'});
+      if (!obj.header || typeof obj.header.version !== 'string' || typeof obj.header.min_engine_version !== 'string') issues.push({level:'WARN',message:'Manifest V3 uses SemVer strings for version fields; review header and module version fields.'});
+    }
+    if (obj.subpacks !== undefined) {
+      if (!Array.isArray(obj.subpacks)) issues.push({level:'ERROR',message:'subpacks must be an array.'});
+      else {
+        if (obj.subpacks.length && obj.modules && obj.modules.some(m=>m.type==='skin_pack')) issues.push({level:'WARN',message:'Subpacks are documented for resource-pack use; avoid using them in a skin pack.'});
+        obj.subpacks.forEach((p,i)=>{
+          if (!p || typeof p.folder_name!=='string' || !p.folder_name.trim() || typeof p.name!=='string' || !p.name.trim()) issues.push({level:'ERROR',message:'subpacks['+i+'] requires folder_name and name.'});
+          if (p && p.memory_performance_tier!==undefined && (obj.format_version!==3 || !Number.isInteger(p.memory_performance_tier) || p.memory_performance_tier<1 || p.memory_performance_tier>5)) issues.push({level:'WARN',message:'subpacks['+i+'].memory_performance_tier is experimental, requires Manifest V3 and documented values 1–5.'});
+          if (p && p.memory_tier!==undefined && (!Number.isInteger(p.memory_tier) || p.memory_tier<0)) issues.push({level:'ERROR',message:'subpacks['+i+'].memory_tier must be a non-negative integer.'});
+        });
+      }
+    }
+    if (obj.settings !== undefined) {
+      if (obj.format_version !== 3) issues.push({level:'WARN',message:'Custom pack settings are documented under Manifest V3; verify target version and preview support.'});
+      if (!Array.isArray(obj.settings)) issues.push({level:'ERROR',message:'settings must be an array.'});
+      else obj.settings.forEach((setting,i)=>{
+        if (!setting || !['label','toggle','slider','dropdown'].includes(setting.type)) issues.push({level:'WARN',message:'settings['+i+'] type is not one of the documented setting types (label, toggle, slider, dropdown).'});
+        if (setting && setting.type!=='label' && (typeof setting.name!=='string' || !setting.name.trim())) issues.push({level:'WARN',message:'settings['+i+'] should have a name.'});
+      });
+      if (obj.modules && obj.modules.some(m=>m.type==='skin_pack')) issues.push({level:'WARN',message:'Custom pack settings are not supported in skin pack manifests per the official documentation.'});
+    }
+    if (Array.isArray(obj.capabilities)) obj.capabilities.forEach(cap=>{
+      if (!rules.capabilities.includes(cap)) issues.push({level:'WARN',message:'Capability "'+cap+'" is not in the bundled documented list; check official docs for the target version.'});
+    });
+    return issues;
+  }
+  window.StudioCompatibility = {
+    get data(){ return compatibilityData; },
+    checkManifest: checkManifestCompatibility,
+    getTargetVersion(){ return (byId('compatTargetVersion')?.value || '').trim(); },
+    refresh: refreshOnline
+  };
+  byId('compatTargetVersion')?.addEventListener('input', renderReport);
+  byId('compatCheckBtn')?.addEventListener('click', renderReport);
+  byId('compatRefreshBtn')?.addEventListener('click', refreshOnline);
+  async function init() {
+    let cached = null;
+    try { cached = safeParse(localStorage.getItem(CACHE_KEY) || ''); } catch (_) {}
+    if (cached) setData(cached, 'cached offline fallback');
+    const ok = await loadBundled();
+    if (!ok && !cached) await refreshOnline();
+  }
+  init();
+})();
+</script>
 </body>
 </html>

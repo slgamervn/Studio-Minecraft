@@ -1,14 +1,51 @@
 import http from "node:http";
 
 const PORT = Number(process.env.PORT || 10000);
-const API_KEY = process.env.OPENAI_API_KEY;
-const MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://slgamervn.github.io";
 const MAX_BODY = 8000;
 const MAX_QUESTION = 1200;
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 12;
 const requests = new Map();
+
+const PROVIDERS = {
+  openai: {
+    label: "OpenAI",
+    key: () => process.env.OPENAI_API_KEY,
+    model: () => process.env.OPENAI_MODEL || "gpt-4.1-mini",
+    url: "https://api.openai.com/v1/chat/completions"
+  },
+  gemini: {
+    label: "Google Gemini",
+    key: () => process.env.GEMINI_API_KEY,
+    model: () => process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+  },
+  groq: {
+    label: "Groq",
+    key: () => process.env.GROQ_API_KEY,
+    model: () => process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    url: "https://api.groq.com/openai/v1/chat/completions"
+  },
+  openrouter: {
+    label: "OpenRouter",
+    key: () => process.env.OPENROUTER_API_KEY,
+    model: () => process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini",
+    url: "https://openrouter.ai/api/v1/chat/completions"
+  },
+  together: {
+    label: "Together AI",
+    key: () => process.env.TOGETHER_API_KEY,
+    model: () => process.env.TOGETHER_MODEL || "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    url: "https://api.together.xyz/v1/chat/completions"
+  },
+  mistral: {
+    label: "Mistral AI",
+    key: () => process.env.MISTRAL_API_KEY,
+    model: () => process.env.MISTRAL_MODEL || "mistral-small-latest",
+    url: "https://api.mistral.ai/v1/chat/completions"
+  }
+};
 
 function send(res, status, data, origin) {
   const headers = {
@@ -74,7 +111,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
-    return send(res, 200, { ok: true, service: "studio-ai-backend" }, origin);
+    return send(res, 200, { ok: true, service: "studio-ai-backend", providers: Object.keys(PROVIDERS) }, origin);
   }
 
   if (req.method !== "POST" || url.pathname !== "/api/ai") {
@@ -82,9 +119,6 @@ const server = http.createServer(async (req, res) => {
   }
   if (origin !== ALLOWED_ORIGIN) {
     return send(res, 403, { error: "A request from the Studio website is required." });
-  }
-  if (!API_KEY) {
-    return send(res, 503, { error: "Backend is not configured: add OPENAI_API_KEY in the hosting environment." }, origin);
   }
   if (rateLimited(clientKey(req))) {
     return send(res, 429, { error: "Too many requests. Wait a minute and try again." }, origin);
@@ -95,48 +129,61 @@ const server = http.createServer(async (req, res) => {
   catch (error) { return send(res, error.status || 400, { error: error.message }, origin); }
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
+  const providerId = typeof body.provider === "string" ? body.provider.toLowerCase() : "openai";
+  const provider = PROVIDERS[providerId];
+  if (!provider) return send(res, 400, { error: "Unsupported AI provider." }, origin);
   if (!question) return send(res, 400, { error: "Please enter a question." }, origin);
   if (question.length > MAX_QUESTION) return send(res, 413, { error: "Question must be 1200 characters or fewer." }, origin);
 
+  const apiKey = provider.key();
+  if (!apiKey) {
+    return send(res, 503, { error: provider.label + " is not configured. Add its API key in the Render environment variables." }, origin);
+  }
+
   let upstream;
   try {
-    upstream = await fetch("https://api.openai.com/v1/responses", {
+    upstream = await fetch(provider.url, {
       method: "POST",
-      headers: { "Authorization": "Bearer " + API_KEY, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": "Bearer " + apiKey,
+        "Content-Type": "application/json",
+        ...(providerId === "openrouter" ? { "HTTP-Referer": "https://slgamervn.github.io/Studio-Minecraft/", "X-Title": "Bedrock Coder Studio" } : {})
+      },
       signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
-        model: MODEL,
-        instructions: "You are Studio AI, a technical assistant for Bedrock Coder Studio and Minecraft Bedrock add-ons. Reply in the user's language, usually Vietnamese. Be concise, practical, and accurate. Never invent API names, versions, compatibility, or test results. Explain uncertainty and point to official Microsoft Learn docs when needed. Distinguish valid JSON syntax from valid Minecraft schemas. Never ask for API keys or secrets.",
-        input: question,
-        max_output_tokens: 700,
-        store: false
+        model: provider.model(),
+        messages: [
+          { role: "system", content: "You are Studio AI, a technical assistant for Minecraft Bedrock add-ons and Bedrock Coder Studio. Reply in the user's language, usually Vietnamese. Be concise, practical, and accurate. Never invent API names, versions, compatibility, or test results. Distinguish valid JSON syntax from valid Minecraft schemas. Never ask for API keys or secrets." },
+          { role: "user", content: question }
+        ],
+        max_tokens: 700,
+        stream: false
       })
     });
   } catch {
-    return send(res, 502, { error: "Could not connect to the AI service. Try again later." }, origin);
+    return send(res, 502, { error: "Could not connect to " + provider.label + ". Try again later." }, origin);
   }
 
   let data;
   try { data = await upstream.json(); }
-  catch { return send(res, 502, { error: "The AI service returned an unreadable response." }, origin); }
+  catch { return send(res, 502, { error: provider.label + " returned an unreadable response." }, origin); }
 
   if (!upstream.ok) {
     const status = upstream.status === 429 ? 429 : 502;
-    return send(res, status, { error: upstream.status === 429 ? "AI usage limit reached. Try again later." : "The AI service could not answer right now." }, origin);
+    const message = upstream.status === 401 || upstream.status === 403
+      ? provider.label + " rejected the API key or account access."
+      : upstream.status === 429
+        ? provider.label + " rate or usage limit reached."
+        : provider.label + " could not answer. Check the configured model and provider account.";
+    return send(res, status, { error: message }, origin);
   }
 
-  const answer = (data.output || [])
-    .filter(item => item.type === "message")
-    .flatMap(item => item.content || [])
-    .filter(item => item.type === "output_text")
-    .map(item => item.text || "")
-    .join("")
-    .trim();
-
-  if (!answer) return send(res, 502, { error: "The AI service did not produce an answer." }, origin);
-  return send(res, 200, { answer }, origin);
+  const answer = data.choices?.[0]?.message?.content;
+  const textAnswer = typeof answer === "string" ? answer.trim() : Array.isArray(answer) ? answer.map(part => part.text || "").join("").trim() : "";
+  if (!textAnswer) return send(res, 502, { error: provider.label + " did not produce an answer." }, origin);
+  return send(res, 200, { answer: textAnswer, provider: providerId, model: provider.model() }, origin);
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log("Studio AI backend listening on port " + PORT);
+  console.log("Studio AI multi-provider backend listening on port " + PORT);
 });

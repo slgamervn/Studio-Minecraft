@@ -2071,7 +2071,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 </script>
 
 <div id="studioAiPanel" class="studio-ai-panel" role="dialog" aria-label="Studio AI" aria-modal="false" hidden>
-  <div class="studio-ai-head"><div><strong>Studio AI</strong><small>Trợ lý Bedrock • hoạt động ngoại tuyến</small></div><button type="button" id="studioAiClose" class="studio-ai-close" aria-label="Đóng">✕</button></div>
+  <div class="studio-ai-head"><div><strong>Studio AI</strong><small>Trợ lý Bedrock • AI trực tuyến + dự phòng ngoại tuyến</small></div><button type="button" id="studioAiClose" class="studio-ai-close" aria-label="Đóng">✕</button></div>
   <div id="studioAiMessages" class="studio-ai-messages" aria-live="polite"></div>
   <div class="studio-ai-suggestions">
     <button type="button" data-ai-question="Manifest là gì?">Manifest</button>
@@ -2101,18 +2101,36 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     {keys:['xin chao','chao','hello','hi','hey'],answer:'Chào bạn! Mình là Studio AI, trợ lý ngoại tuyến cho các tác vụ Minecraft Bedrock trong app. Bạn có thể hỏi về Manifest, JSON, Script API, Subpacks, Compatibility hoặc BrArchive.'}
   ];
   function addMessage(text,who){const el=document.createElement('div');el.className='studio-ai-msg '+who;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;}
-  function answer(q){
+  function localAnswer(q){
     const n=norm(q);let best=null,bestScore=0;
     for(const item of kb){let score=0;for(const key of item.keys){const k=norm(key);if(n===k)score+=5;else if(n.includes(k))score+=Math.max(2,Math.min(4,k.split(' ').length));else if(k.split(' ').length>1&&k.split(' ').every(w=>n.includes(w)))score+=2;}if(score>bestScore){best=item;bestScore=score;}}
-    if(best&&bestScore>=2)return best.answer;
-    return 'Mình chưa có câu trả lời đủ chắc cho câu hỏi này trong bộ kiến thức ngoại tuyến. Bạn thử hỏi cụ thể hơn về Manifest, lỗi JSON, Script API, Subpacks, pack settings, BrArchive hoặc tương thích phiên bản. Đây là trợ lý tra cứu theo bộ quy tắc/kiến thức cục bộ, chưa phải mô hình AI tạo sinh và không gửi câu hỏi của bạn lên máy chủ.';
+    return best&&bestScore>=2?best.answer:null;
   }
-  function send(q){q=String(q||'').trim();if(!q)return;addMessage(q,'user');addMessage(answer(q),'bot');}
+  let waiting=false,lastRequest=0;
+  async function send(q){
+    q=String(q||'').trim();if(!q||waiting)return;
+    addMessage(q,'user');
+    const local=localAnswer(q);
+    if(local){addMessage(local,'bot');return;}
+    if(Date.now()-lastRequest<1800){addMessage('Bạn đợi một chút rồi gửi câu hỏi tiếp theo nhé.','bot');return;}
+    lastRequest=Date.now();waiting=true;
+    const pending=document.createElement('div');pending.className='studio-ai-msg bot';pending.textContent='Đang suy nghĩ…';messages.appendChild(pending);messages.scrollTop=messages.scrollHeight;
+    try{
+      const res=await fetch('./api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+      let data={};try{data=await res.json();}catch(_){}
+      pending.remove();
+      if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');
+      addMessage(data.answer||'AI chưa tạo được câu trả lời.','bot');
+    }catch(err){
+      pending.remove();
+      addMessage('AI trực tuyến hiện chưa sẵn sàng. '+(err&&err.message?err.message:'')+'\n\nBạn vẫn có thể hỏi các chủ đề có sẵn để dùng trợ lý ngoại tuyến.','bot');
+    }finally{waiting=false;}
+  }
   function setOpen(open){panel.hidden=!open;fab.setAttribute('aria-expanded',String(open));if(open)input.focus();}
   fab.addEventListener('click',()=>setOpen(panel.hidden));close.addEventListener('click',()=>setOpen(false));
   form.addEventListener('submit',e=>{e.preventDefault();send(input.value);input.value='';input.focus();});
   document.querySelectorAll('[data-ai-question]').forEach(b=>b.addEventListener('click',()=>send(b.getAttribute('data-ai-question'))));
-  addMessage('Xin chào! Mình có thể trả lời nhanh một số câu hỏi thường gặp về Minecraft Bedrock và các công cụ trong Studio. Câu trả lời dựa trên kiến thức cục bộ, nên thông tin chưa xác minh sẽ được nói rõ.','bot');
+  addMessage('Xin chào! Mình có thể trả lời câu hỏi thường gặp ngay trên máy, hoặc dùng AI trực tuyến cho câu hỏi mới khi backend đã được cấu hình. Không có backend thì các câu trả lời ngoại tuyến vẫn dùng được.','bot');
 })();
 </script>
 

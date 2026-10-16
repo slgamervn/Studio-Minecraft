@@ -146,6 +146,15 @@ label{color:var(--dim)}
 .status{line-height:1.6}
 .hl-pre{background:var(--bg);border-color:var(--line)}
 #packTree,#entryList,#validatorResults{overflow-wrap:anywhere}
+.pack-syntax-diagnostic{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.pack-syntax-diagnostic[hidden]{display:none}
+.pack-syntax-head{padding:9px 12px;background:color-mix(in srgb,var(--warn) 12%,var(--panel));color:var(--warn);border-bottom:1px solid var(--line);font-weight:750}
+.pack-syntax-code{margin:0;padding:10px 0;overflow:auto;white-space:pre}
+.pack-syntax-line{display:block;padding:0 12px;color:var(--text)}
+.pack-syntax-line.error{background:rgba(255,80,80,.14);box-shadow:inset 3px 0 #ff6262;color:#ffd1ce}
+.pack-syntax-caret{display:block;padding:0 12px;color:#ff8b7d;white-space:pre}
+.pack-syntax-number{display:inline-block;width:38px;padding-right:12px;text-align:right;color:var(--dim);user-select:none}
+
 #packTree button,#entryList button{min-height:32px}
 footer{max-width:1180px;margin:30px auto 0;padding:22px 24px 34px;border-top:1px solid var(--line);color:var(--dim);font-size:11px;line-height:1.9}
 a{color:var(--accent);text-underline-offset:3px}
@@ -427,6 +436,7 @@ main{padding-top:14px}
           <button id="packDeleteBtn">Delete file</button>
         </div>
         <div id="packEditStatus" class="status" aria-live="polite"></div>
+        <div id="packSyntaxDiagnostic" class="pack-syntax-diagnostic" hidden aria-live="polite"></div>
       </div>
     </div>
     <div class="card">
@@ -1756,25 +1766,69 @@ document.getElementById('packFormatJson').onclick = () => {
     setStatus('packEditStatus', 'JSON parse error: ' + err.message, 'err');
   }
 };
+function showPackSyntaxDiagnostic(source, error, language) {
+  const box = document.getElementById('packSyntaxDiagnostic');
+  if (!box) return;
+  const msg = String(error && error.message || error || 'Syntax error');
+  let line = 1, column = 1, pos = -1;
+  const posMatch = msg.match(/position\\s+(\\d+)/i);
+  const lineMatch = msg.match(/(?:at\\s+)?line\\s+(\\d+)(?:\\s+column\\s+(\\d+))?/i);
+  if (posMatch) {
+    pos = Math.max(0, Math.min(source.length, Number(posMatch[1])));
+    const before = source.slice(0, pos).split('\\n');
+    line = before.length;
+    column = before[before.length - 1].length + 1;
+  } else if (lineMatch) {
+    line = Math.max(1, Number(lineMatch[1]));
+    column = Math.max(1, Number(lineMatch[2] || 1));
+  } else {
+    const loc = msg.match(/<anonymous>:(\\d+):(\\d+)/);
+    if (loc) { line = Number(loc[1]); column = Number(loc[2]); }
+  }
+  const lines = source.split('\\n');
+  line = Math.min(Math.max(1, line), Math.max(1, lines.length));
+  const safe = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const start = Math.max(0, line - 2), end = Math.min(lines.length, line + 2);
+  let html = '<div class="pack-syntax-head">✕ ' + safe(language) + ' error · Line ' + line + ', Column ' + column + '</div><pre class="pack-syntax-code">';
+  for (let i = start; i < end; i++) {
+    html += '<span class="pack-syntax-line' + (i + 1 === line ? ' error' : '') + '"><span class="pack-syntax-number">' + (i + 1) + '</span>' + safe(lines[i] || ' ') + '</span>';
+    if (i + 1 === line) html += '<span class="pack-syntax-caret"><span class="pack-syntax-number"></span>' + ' '.repeat(Math.max(0, Math.min(160, column - 1))) + '^ ' + safe(msg) + '</span>';
+  }
+  box.innerHTML = html + '</pre>';
+  box.hidden = false;
+  const editor = document.getElementById('packEditContent');
+  if (editor) {
+    const offset = lines.slice(0, line - 1).reduce((n, part) => n + part.length + 1, 0) + column - 1;
+    editor.focus();
+    editor.setSelectionRange(Math.min(offset, source.length), Math.min(offset + 1, source.length));
+  }
+}
+function clearPackSyntaxDiagnostic() {
+  const box = document.getElementById('packSyntaxDiagnostic');
+  if (box) { box.hidden = true; box.textContent = ''; }
+}
 document.getElementById('packCheckSyntax').onclick = () => {
   const path = document.getElementById('packEditPath').value.trim();
   const editor = document.getElementById('packEditContent');
-  if (/\.json$/i.test(path)) {
+  clearPackSyntaxDiagnostic();
+  if (/\\.json$/i.test(path)) {
     try {
       parseJsonWithComments(editor.value);
-      setStatus('packEditStatus', 'JSON syntax looks valid (comments and trailing commas are accepted).', 'ok');
+      setStatus('packEditStatus', '✓ JSON syntax is valid (comments and trailing commas are accepted).', 'ok');
     } catch (err) {
       setStatus('packEditStatus', 'JSON syntax error: ' + err.message, 'err');
+      showPackSyntaxDiagnostic(editor.value, err, 'JSON');
     }
     return;
   }
-  if (/\.mcfunction$/i.test(path)) return setStatus('packEditStatus', 'MCFunction is plain text; check command syntax in Minecraft.', 'ok');
-  if (/\.(js|mjs|cjs)$/i.test(path)) {
+  if (/\\.mcfunction$/i.test(path)) { setStatus('packEditStatus', 'MCFunction is plain text; check command syntax in Minecraft.', 'ok'); return; }
+  if (/\\.(js|mjs|cjs)$/i.test(path)) {
     try {
       new Function(editor.value);
-      setStatus('packEditStatus', 'JavaScript parses as a function body. This does not verify Minecraft APIs or runtime behavior.', 'ok');
+      setStatus('packEditStatus', '✓ JavaScript syntax is valid. Minecraft APIs and runtime behavior are not checked.', 'ok');
     } catch (err) {
       setStatus('packEditStatus', 'JavaScript syntax error: ' + err.message, 'err');
+      showPackSyntaxDiagnostic(editor.value, err, 'JavaScript');
     }
     return;
   }

@@ -229,6 +229,20 @@ a{color:var(--accent);text-underline-offset:3px}
 @media(max-width:640px){.card{border-radius:18px}.tab{border-radius:13px}button{border-radius:13px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
+
+/* Compact mobile navigation: grouped grid instead of a horizontal scrolling strip */
+@media(max-width:979px){
+  .tabs{position:relative;top:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:10px;background:transparent;border-bottom:0;overflow:visible;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .tab{min-width:0;width:100%;min-height:64px;flex:initial;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:8px 4px;text-align:center;white-space:normal;font-size:10.5px;line-height:1.2;border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow-wrap:anywhere}
+  .tab::before{width:auto;flex:0 0 auto;font-size:17px}
+  .tab.active{border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));box-shadow:inset 0 -2px 0 var(--accent);background:color-mix(in srgb,var(--accent-dim) 40%,var(--panel))}
+  main{padding-top:8px}
+}
+@media(max-width:380px){
+  .tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:8px}
+  .tab{min-height:52px;flex-direction:row;justify-content:flex-start;padding:9px 12px;font-size:12px}
+  .tab::before{font-size:16px}
+}
 </style>
 </head>
 <body>

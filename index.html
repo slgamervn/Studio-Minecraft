@@ -716,6 +716,7 @@ applyLang();
 
 const prefs = { theme: storage.get('theme') || 'light', ns: storage.get('ns') || 'mypack' };
 function applyTheme() {
+  document.documentElement.style.colorScheme = prefs.theme === 'light' ? 'light' : 'dark';
   if (prefs.theme === 'light') {
     document.documentElement.style.setProperty('--bg', '#F6F0E6');
     document.documentElement.style.setProperty('--panel', '#FFFAF1');

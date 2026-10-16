@@ -1,0 +1,24 @@
+{
+  "name": "Bedrock Coder Studio",
+  "short_name": "Bedrock Studio",
+  "description": "Tools for Minecraft Bedrock coders — Unicode, BrArchive, Pack Explorer, Manifest",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d1012",
+  "theme_color": "#5ec9a6",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

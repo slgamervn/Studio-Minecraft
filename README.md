@@ -1,25 +1,46 @@
 # Bedrock Coder Studio
-**Tác giả:** snowgem
 
-Công cụ client-side cho coder Minecraft Bedrock. Hỗ trợ format_version đến 1.26.x (phiên bản mới nhất khoảng 1.26.52 / 26.52).
+A lightweight, browser-based toolkit for creating, inspecting, and editing Minecraft Bedrock add-on files.
 
-## Tính năng
-- Unicode / JSON tools
-- BrArchive (đúng format fixed 256-byte)
-- Pack Explorer (.mcpack/.mcaddon)
-- Manifest generator (format 1/2/3, nhiều min_engine, script, dependencies)
-- Lang Editor + Templates (format đến 1.26.50)
-- Coder Tools (Skeleton, contents.json, Snippets)
-- Đa ngôn ngữ, theme Dark/Light, cá nhân hoá
+**[Open Studio](https://slgamervn.github.io/Studio-Minecraft/)** · **[Source Code](https://github.com/slgamervn/Studio-Minecraft)**
 
-## Kế hoạch dài hạn
-1. Editor file JSON/Lang trực tiếp trong pack (tree view + edit)
-2. Validate schema cơ bản theo format_version
-3. Hỗ trợ thêm file type (UI JSON, animation, geometry)
-4. PWA offline tốt hơn + hướng dẫn đóng gói APK
-5. Cộng đồng đóng góp template/snippet
+## Features
 
-## Cài đặt
-Mở `index.html` trên trình duyệt (hoặc đóng gói PWA/APK).
+- **Unicode & JSON Tools** — Encode/decode Unicode escapes, format, minify, highlight, and repair common JSON formatting issues.
+- **BrArchive** — Open, create, edit, and export `.brarchive` files using the project's 256-byte header format.
+- **Pack Explorer** — Browse `.mcpack`, `.mcaddon`, and `.zip` archives; preview textures; inspect manifests; edit, rename, add, or remove supported files; and export changes.
+- **Manifest Generator** — Create Minecraft Bedrock manifests with configurable format versions, engine versions, modules, scripts, and dependencies.
+- **Add-on Validator** — Run available checks on pack files and manifest data.
+- **Language Editor & Templates** — Work with language files and common pack templates.
+- **Coder Tools** — Generate starter structures, `contents.json`, and reusable snippets.
+- **Personalization** — Multiple interface languages, light/dark themes, and settings.
 
-**Lưu ý bảo mật:** Không chia sẻ GitHub token công khai.
+## Getting Started
+
+### Use online
+
+Open **[Bedrock Coder Studio](https://slgamervn.github.io/Studio-Minecraft/)** in a modern browser.
+
+### Run locally
+
+1. Download or clone this repository.
+2. Open `index.html` in a modern browser.
+3. For the best experience, use a local web server if browser file restrictions affect functionality.
+
+Some libraries are loaded from a CDN, so an internet connection may be required for those features.
+
+## Compatibility
+
+Designed for Minecraft Bedrock add-on workflows, including Behavior Packs and Resource Packs. Supported file types and validation coverage depend on the tool and the selected file format.
+
+## Contributing
+
+Bug reports, feature requests, and improvements are welcome. Please open a [GitHub Issue](https://github.com/slgamervn/Studio-Minecraft/issues) with clear reproduction steps or a description of the proposed change.
+
+## Author
+
+**snowgem** · [GitHub](https://github.com/slgamervn)
+
+---
+
+*Bedrock Coder Studio is an independent community tool and is not affiliated with or endorsed by Mojang or Microsoft.*

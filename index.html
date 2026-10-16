@@ -480,7 +480,49 @@ main{padding-top:14px}
         <label style="font-size:12px;"><input type="checkbox" id="addServerDep"> @minecraft/server dep</label>
         <button id="genManifest" class="primary">Generate</button>
       </div>
+      <div class="card" style="margin-top:12px;background:var(--panel2);">
+        <h3 style="margin-top:0;">Manifest options</h3>
+        <div class="row">
+          <input id="manifestLicense" type="text" placeholder="License (e.g. MIT)">
+          <input id="manifestUrl" type="url" placeholder="Pack website URL">
+          <input id="manifestProductType" type="text" placeholder="Product type (addon)">
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <label><input type="checkbox" id="capPbr"> PBR / Vibrant Visuals</label>
+          <label><input type="checkbox" id="capRaytraced"> Raytraced</label>
+          <label><input type="checkbox" id="capChemistry"> Chemistry</label>
+          <label><input type="checkbox" id="capExperimentalUi"> Experimental Custom UI</label>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <label><input type="checkbox" id="addSubpacks"> Include subpacks</label>
+          <label><input type="checkbox" id="addSettings"> Include Manifest V3 settings</label>
+          <label><input type="checkbox" id="addGeneratedWith"> Add generated_with metadata</label>
+        </div>
+        <label for="manifestSubpacks" style="display:block;margin-top:10px;">Subpacks JSON array (folder_name, name, memory_tier / memory_performance_tier)</label>
+        <textarea id="manifestSubpacks" placeholder='[{"folder_name":"Low","name":"Low Graphics","memory_tier":4},{"folder_name":"High","name":"High Graphics","memory_tier":16,"memory_performance_tier":4}]'>[
+  {
+    "folder_name": "Low",
+    "name": "Low Graphics",
+    "memory_tier": 4
+  },
+  {
+    "folder_name": "High",
+    "name": "High Graphics",
+    "memory_tier": 16,
+    "memory_performance_tier": 4
+  }
+]</textarea>
+        <label for="manifestSettings" style="display:block;margin-top:10px;">Manifest V3 settings JSON array</label>
+        <textarea id="manifestSettings" placeholder='[{"type":"label","text":"Pack settings"},{"type":"toggle","text":"Enable feature","name":"my_feature","default":true}]'>[
+  {
+    "type": "label",
+    "text": "Pack settings"
+  }
+]</textarea>
+        <div class="status">V3 settings and memory_performance_tier may depend on the Minecraft version and preview support. Subpack folders must also exist under subpacks/ in the pack.</div>
+      </div>
       <textarea id="manifestOut" style="margin-top:10px;" readonly></textarea>
+      <div class="status" id="manifestStatus"></div>
       <div class="row" style="margin-top:8px;">
         <button id="copyManifest">Copy</button>
         <button id="downloadManifest">Download</button>
@@ -835,29 +877,67 @@ document.getElementById('copyUuid').onclick = () => navigator.clipboard.writeTex
 
 // Manifest
 document.getElementById('genManifest').onclick = () => {
-  const type = document.getElementById('manifestType').value;
-  const name = document.getElementById('manifestName').value || 'My Pack';
-  const desc = document.getElementById('manifestDesc').value || name;
-  const author = document.getElementById('manifestAuthor').value;
-  const ver = parseInt(document.getElementById('manifestVer').value) || 2;
-  const minEng = document.getElementById('minEngine').value.split('.').map(Number);
-  const addScript = document.getElementById('addScript').checked;
-  const addServer = document.getElementById('addServerDep').checked;
-  const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
-  const headerUuid = uuid();
-  const modules = [];
-  if (type === 'bp' || type === 'script') modules.push({ type: 'data', uuid: uuid(), version: [1,0,0], description: desc });
-  if (type === 'rp') modules.push({ type: 'resources', uuid: uuid(), version: [1,0,0], description: desc });
-  if (type === 'skin') modules.push({ type: 'skin_pack', uuid: uuid(), version: [1,0,0] });
-  if (addScript || type === 'script') modules.push({ type: 'script', uuid: uuid(), version: [1,0,0], language: 'javascript', entry: 'scripts/main.js' });
-  const obj = {
-    format_version: ver,
-    header: { name, description: desc, uuid: headerUuid, version: [1,0,0], min_engine_version: minEng },
-    modules
-  };
-  if (addServer) obj.dependencies = [{ module_name: '@minecraft/server', version: '1.9.0' }];
-  if (author) obj.metadata = { authors: [author] };
-  document.getElementById('manifestOut').value = JSON.stringify(obj, null, 2);
+  try {
+    const type = document.getElementById('manifestType').value;
+    const name = document.getElementById('manifestName').value.trim() || 'My Pack';
+    const desc = document.getElementById('manifestDesc').value.trim() || name;
+    const author = document.getElementById('manifestAuthor').value.trim();
+    const ver = Number.parseInt(document.getElementById('manifestVer').value, 10) || 2;
+    const minEngText = document.getElementById('minEngine').value;
+    const minEng = ver >= 3 ? minEngText : minEngText.split('.').map(Number);
+    const addScript = document.getElementById('addScript').checked || type === 'script';
+    const addServer = document.getElementById('addServerDep').checked;
+    const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (Math.random()*16|0).toString(16));
+    const version = ver >= 3 ? '1.0.0' : [1,0,0];
+    const modules = [];
+    if (type === 'bp' || type === 'script') modules.push({ type: 'data', uuid: uuid(), version, description: desc });
+    if (type === 'rp') modules.push({ type: 'resources', uuid: uuid(), version, description: desc });
+    if (type === 'skin') modules.push({ type: 'skin_pack', uuid: uuid(), version });
+    if (addScript) modules.push({ type: 'script', uuid: uuid(), version, language: 'javascript', entry: 'scripts/main.js' });
+    const obj = {
+      format_version: ver,
+      header: { name, description: desc, uuid: uuid(), version, min_engine_version: minEng },
+      modules
+    };
+    if (addServer) obj.dependencies = [{ module_name: '@minecraft/server', version: ver >= 3 ? '2.0.0' : '1.9.0' }];
+    const capabilities = [];
+    if (document.getElementById('capPbr').checked) capabilities.push('pbr');
+    if (document.getElementById('capRaytraced').checked) capabilities.push('raytraced');
+    if (document.getElementById('capChemistry').checked) capabilities.push('chemistry');
+    if (document.getElementById('capExperimentalUi').checked) capabilities.push('experimental_custom_ui');
+    if (capabilities.length) obj.capabilities = capabilities;
+    const license = document.getElementById('manifestLicense').value.trim();
+    const url = document.getElementById('manifestUrl').value.trim();
+    const productType = document.getElementById('manifestProductType').value.trim();
+    const metadata = {};
+    if (author) metadata.authors = [author];
+    if (license) metadata.license = license;
+    if (url) metadata.url = url;
+    if (productType) metadata.product_type = productType;
+    if (document.getElementById('addGeneratedWith').checked) metadata.generated_with = { 'Studio-Minecraft': ['1.0.0'] };
+    if (Object.keys(metadata).length) obj.metadata = metadata;
+    if (document.getElementById('addSubpacks').checked) {
+      if (type !== 'rp') throw new Error('Subpacks are intended for resource packs. Select Resource Pack to add subpacks.');
+      const subpacks = JSON.parse(document.getElementById('manifestSubpacks').value || '[]');
+      if (!Array.isArray(subpacks)) throw new Error('Subpacks must be a JSON array.');
+      for (const [i, p] of subpacks.entries()) {
+        if (!p || typeof p.folder_name !== 'string' || !p.folder_name.trim() || typeof p.name !== 'string' || !p.name.trim()) throw new Error('Subpack #' + (i + 1) + ' needs folder_name and name.');
+        if (p.memory_tier !== undefined && (!Number.isInteger(p.memory_tier) || p.memory_tier < 0)) throw new Error('Subpack memory_tier must be a non-negative integer.');
+        if (p.memory_performance_tier !== undefined && (!Number.isInteger(p.memory_performance_tier) || p.memory_performance_tier < 1 || p.memory_performance_tier > 5)) throw new Error('memory_performance_tier must be an integer from 1 to 5.');
+      }
+      obj.subpacks = subpacks;
+    }
+    if (document.getElementById('addSettings').checked) {
+      if (ver < 3) throw new Error('Manifest settings require format_version 3. Select format 3 first.');
+      const settings = JSON.parse(document.getElementById('manifestSettings').value || '[]');
+      if (!Array.isArray(settings)) throw new Error('Manifest settings must be a JSON array.');
+      obj.settings = settings;
+    }
+    document.getElementById('manifestOut').value = JSON.stringify(obj, null, 2);
+    if (typeof setStatus === 'function') setStatus('manifestStatus', 'Manifest generated', 'ok');
+  } catch (error) {
+    alert('Cannot generate manifest: ' + error.message);
+  }
 };
 document.getElementById('copyManifest').onclick = () => navigator.clipboard.writeText(document.getElementById('manifestOut').value).catch(() => {});
 document.getElementById('downloadManifest').onclick = () => {

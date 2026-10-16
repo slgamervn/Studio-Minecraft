@@ -761,6 +761,29 @@ document.getElementById('addFiles').onchange = async e => {
   setStatus('brLoadStatus', brEntries.length + ' entries', 'ok');
 };
 
+const apiSnippets = {
+  spawn: "import { world } from '@minecraft/server';\n\nworld.afterEvents.playerSpawn.subscribe((event) => {\n  if (event.initialSpawn) event.player.sendMessage('Welcome!');\n});",
+  interval: "import { system, world } from '@minecraft/server';\n\nsystem.runInterval(() => {\n  for (const player of world.getAllPlayers()) {\n    // Put lightweight periodic logic here.\n  }\n}, 20);",
+  dimension: "import { world } from '@minecraft/server';\n\nconst overworld = world.getDimension('overworld');\nconst block = overworld.getBlock({ x: 0, y: 64, z: 0 });",
+  form: "import { ActionFormData } from '@minecraft/server-ui';\n\nconst form = new ActionFormData()\n  .title('Example Menu')\n  .body('Choose an option')\n  .button('Continue');\n\n// Call form.show(player) when a Player is available."
+};
+document.getElementById('apiInsertBtn').onclick = () => {
+  document.getElementById('apiCode').value = apiSnippets[document.getElementById('apiSnippet').value] || '';
+  setStatus('apiCheckStatus', 'Snippet inserted. Confirm API availability for the target game version.', 'ok');
+};
+document.getElementById('apiCheckBtn').onclick = () => {
+  const source = document.getElementById('apiCode').value;
+  const version = document.getElementById('apiVersion').value;
+  const notes = [];
+  try { new Function(source); } catch (err) { notes.push('Basic parser: ' + err.message + '. ES module imports/exports can trigger this check; it is not a full module parser.'); }
+  if (/\bworld\.beforeEvents\b/.test(source)) notes.push('Review world.beforeEvents availability and event names in the versioned API docs.');
+  if (/\bPlayerInputPermissions\b|\binputPermissions\b/.test(source) && version === '1.21.0') notes.push('This symbol may not exist in older 1.x targets; confirm in Microsoft Learn.');
+  if (/from\s*['"]@minecraft\/server-ui['"]/.test(source)) notes.push('Ensure manifest.json declares @minecraft/server-ui with a compatible version.');
+  if (/\bMinecraftEntityTypes\b|\bEntityComponentTypes\b/.test(source) && version === '1.21.0') notes.push('Check whether the referenced enum/member exists in your selected API generation.');
+  if (!notes.length) setStatus('apiCheckStatus', 'No obvious warning patterns detected for ' + version + '. This cannot prove API compatibility.', 'ok');
+  else setStatus('apiCheckStatus', notes.join(' '), 'err');
+};
+
 // More snippets
 document.getElementById('showSnippet').onclick = () => {
   const map = {
@@ -1121,6 +1144,63 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorNoJson', 'No JSON files found in archive.') });
   if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: validatorT('validatorNoManifest', 'manifest.json not found.') });
   if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorMultiManifest', 'Multiple manifest.json files found; check add-on structure.') });
+  const normalizedFiles = new Set(files.map(n => n.replace(/\\/g, '/').toLowerCase()));
+  const imageFiles = new Set(files.filter(n => /\.(png|tga|jpg|jpeg|webp)$/i.test(n)).map(n => n.replace(/\\/g, '/').replace(/\.(png|tga|jpg|jpeg|webp)$/i, '').toLowerCase()));
+  const textureRefs = new Map();
+  for (const path of jsonFiles) {
+    let obj;
+    try { obj = parseJsonWithComments(await validatorZip.file(path).async('string')); } catch { continue; }
+    const visit = (value, key = '') => {
+      if (typeof value === 'string') {
+        const val = value.replace(/\\/g, '/').replace(/^\/+/, '');
+        if (/texture/i.test(key) && val.startsWith('textures/')) {
+          const keyPath = val.replace(/\.(png|tga|jpg|jpeg|webp)$/i, '').toLowerCase();
+          if (!textureRefs.has(keyPath)) textureRefs.set(keyPath, []);
+          textureRefs.get(keyPath).push(path + ' → ' + key);
+        }
+      } else if (Array.isArray(value)) value.forEach(v => visit(v, key));
+      else if (value && typeof value === 'object') Object.entries(value).forEach(([k, v]) => visit(v, k));
+    };
+    visit(obj);
+  }
+  for (const [texturePath, locations] of textureRefs) {
+    if (!imageFiles.has(texturePath)) issues.push({ level: 'WARN', path: locations[0].split(' → ')[0], message: 'Texture path may be missing: ' + texturePath + '. Check texture atlas keys and actual image paths.' });
+  }
+  for (const path of files.filter(n => /\.(js|mjs)$/i.test(n))) {
+    let source = '';
+    try { source = await validatorZip.file(path).async('string'); } catch { continue; }
+    const importMatches = [...source.matchAll(/from\s*['"]([^'"]+)['"]/g)];
+    for (const match of importMatches) {
+      const specifier = match[1];
+      if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue;
+      const base = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+      const target = (base + specifier).replace(/\\/g, '/').replace(/\/\.\//g, '/');
+      const candidates = [target, target + '.js', target + '.mjs', target + '/index.js'];
+      if (!candidates.some(candidate => normalizedFiles.has(candidate.toLowerCase()))) issues.push({ level: 'WARN', path, message: 'Relative import may not resolve: ' + specifier });
+    }
+    if (/from\s*['"]@minecraft\/server-ui['"]/.test(source)) {
+      const manifestPaths = files.filter(n => n.split('/').pop().toLowerCase() === 'manifest.json');
+      let declared = false;
+      for (const manifestPath of manifestPaths) {
+        try {
+          const manifest = parseJsonWithComments(await validatorZip.file(manifestPath).async('string'));
+          declared ||= Array.isArray(manifest.dependencies) && manifest.dependencies.some(d => d && d.module_name === '@minecraft/server-ui');
+        } catch {}
+      }
+      if (!declared) issues.push({ level: 'WARN', path, message: 'Imports @minecraft/server-ui but no matching native module dependency was found in the manifests.' });
+    }
+    if (/from\s*['"]@minecraft\/server['"]/.test(source)) {
+      const manifestPaths = files.filter(n => n.split('/').pop().toLowerCase() === 'manifest.json');
+      let declared = false;
+      for (const manifestPath of manifestPaths) {
+        try {
+          const manifest = parseJsonWithComments(await validatorZip.file(manifestPath).async('string'));
+          declared ||= Array.isArray(manifest.dependencies) && manifest.dependencies.some(d => d && d.module_name === '@minecraft/server');
+        } catch {}
+      }
+      if (!declared) issues.push({ level: 'WARN', path, message: 'Imports @minecraft/server but no matching native module dependency was found in the manifests.' });
+    }
+  }
   renderValidatorResults(issues, jsonFiles.length);
 };
 document.getElementById('validatorManifestBtn').onclick = () => {

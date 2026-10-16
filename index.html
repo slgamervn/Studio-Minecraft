@@ -1171,14 +1171,98 @@ function buildBrarchive(entries) {
 function renderBrEntries() {
   const list = document.getElementById('entryList');
   document.getElementById('entryCount').textContent = brEntries.length;
-  if (!brEntries.length) { list.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">No files</div>'; return; }
-  list.innerHTML = brEntries.map((e, i) => `
-    <div style="border:1px solid var(--line);border-radius:6px;margin-bottom:8px;padding:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span>${e.name} <small style="color:var(--dim);">(${e.content.length} bytes)</small></span>
-        <button onclick="downloadBrEntry(${i})" style="padding:4px 8px;font-size:11px;">Download</button>
-      </div>
-    </div>`).join('');
+  if (!brEntries.length) {
+    list.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">No files</div>';
+    return;
+  }
+  list.replaceChildren();
+  brEntries.forEach((entry, index) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid var(--line);border-radius:10px;margin-bottom:9px;overflow:hidden;background:var(--panel2);';
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px;flex-wrap:wrap;';
+    const info = document.createElement('div');
+    info.style.cssText = 'min-width:0;flex:1;overflow-wrap:anywhere;';
+    const name = document.createElement('div');
+    name.textContent = entry.name;
+    name.style.fontWeight = '600';
+    const size = document.createElement('small');
+    size.textContent = entry.content.length + ' bytes';
+    size.style.color = 'var(--dim)';
+    info.append(name, size);
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    const edit = document.createElement('button');
+    edit.textContent = entry._editing ? 'Save' : '✏️ Edit';
+    edit.onclick = () => {
+      if (entry._editing) {
+        const area = card.querySelector('textarea');
+        if (!area) return;
+        entry.content = new TextEncoder().encode(area.value);
+        delete entry._editing;
+        renderBrEntries();
+        setStatus('brLoadStatus', 'Saved ' + entry.name, 'ok');
+      } else {
+        entry._editing = true;
+        renderBrEntries();
+      }
+    };
+    const download = document.createElement('button');
+    download.textContent = '⬇️';
+    download.title = 'Download file';
+    download.onclick = () => downloadBrEntry(index);
+    const remove = document.createElement('button');
+    remove.textContent = '✕';
+    remove.title = 'Delete file';
+    remove.onclick = () => {
+      if (!confirm('Delete ' + entry.name + '?')) return;
+      brEntries.splice(index, 1);
+      renderBrEntries();
+      setStatus('brLoadStatus', 'File deleted', 'ok');
+    };
+    actions.append(edit, download, remove);
+    head.append(info, actions);
+    card.append(head);
+    const isText = !entry.content.some(byte => byte === 0);
+    if (entry._editing && isText) {
+      const area = document.createElement('textarea');
+      area.value = new TextDecoder().decode(entry.content);
+      area.spellcheck = false;
+      area.style.cssText = 'width:100%;min-height:180px;border-radius:0;margin:0;border-left:0;border-right:0;';
+      card.append(area);
+      const tools = document.createElement('div');
+      tools.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:8px;';
+      const check = document.createElement('button');
+      check.textContent = '✓ Check JSON';
+      check.onclick = () => {
+        try { JSON.parse(area.value); setStatus('brLoadStatus', 'Valid JSON: ' + entry.name, 'ok'); }
+        catch (error) { setStatus('brLoadStatus', 'JSON error: ' + error.message, 'err'); }
+      };
+      const format = document.createElement('button');
+      format.textContent = 'Format JSON';
+      format.onclick = () => {
+        try { area.value = JSON.stringify(JSON.parse(area.value), null, 2); }
+        catch (error) { setStatus('brLoadStatus', 'Cannot format JSON: ' + error.message, 'err'); }
+      };
+      const minify = document.createElement('button');
+      minify.textContent = 'Minify';
+      minify.onclick = () => {
+        try { area.value = JSON.stringify(JSON.parse(area.value)); }
+        catch (error) { setStatus('brLoadStatus', 'Cannot minify JSON: ' + error.message, 'err'); }
+      };
+      tools.append(check, format, minify);
+      card.append(tools);
+    } else {
+      const preview = document.createElement('pre');
+      preview.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;margin:0;padding:10px;border-top:1px solid var(--line);font-size:12px;';
+      if (isText) {
+        const decoded = new TextDecoder().decode(entry.content);
+        preview.textContent = decoded.length > 1200 ? decoded.slice(0, 1200) + '\\n…' : decoded;
+      } else preview.textContent = '[Binary file — use Download to export]';
+      card.append(preview);
+    }
+    list.append(card);
+  });
 }
 window.downloadBrEntry = (i) => {
   const e = brEntries[i];
@@ -1204,6 +1288,21 @@ document.getElementById('openBr').onchange = async e => {
     renderBrEntries();
     setStatus('brLoadStatus', brEntries.length + ' entries loaded', 'ok');
   } catch (err) { setStatus('brLoadStatus', err.message, 'err'); }
+};
+document.getElementById('addFiles').onchange = async e => {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
+  for (const file of files) {
+    const content = new Uint8Array(await file.arrayBuffer());
+    const existing = brEntries.findIndex(entry => entry.name === file.webkitRelativePath || entry.name === file.name);
+    const name = file.webkitRelativePath || file.name;
+    const index = brEntries.findIndex(entry => entry.name === name);
+    if (index >= 0) brEntries[index] = { name, content };
+    else brEntries.push({ name, content });
+  }
+  renderBrEntries();
+  setStatus('brLoadStatus', files.length + ' file(s) added', 'ok');
+  e.target.value = '';
 };
 document.getElementById('newBrBtn').onclick = () => { brEntries = []; renderBrEntries(); setStatus('brLoadStatus', 'New archive', 'ok'); };
 document.getElementById('langFromJson').onclick = () => {

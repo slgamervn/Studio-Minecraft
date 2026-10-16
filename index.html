@@ -79,6 +79,7 @@ textarea:focus,input:focus,select:focus{border-color:var(--accent);}
   <button class="tab" data-tab="brarchive">BrArchive</button>
   <button class="tab" data-tab="pack">Pack Explorer</button>
   <button class="tab" data-tab="manifest">Manifest</button>
+  <button class="tab" data-tab="validator">Validator</button>
   <button class="tab" data-tab="lang">Lang & Templates</button>
   <button class="tab" data-tab="coder">Coder Tools</button>
   <button class="tab" data-tab="settings">Settings</button>
@@ -162,6 +163,30 @@ textarea:focus,input:focus,select:focus{border-color:var(--accent);}
         <button id="exportMcpack" class="primary">📦 Export as .mcpack</button>
       </div>
       <div class="status" id="exportPackStatus"></div>
+    </div>
+  </div>
+
+  <div id="tab-validator" class="hidden">
+    <div class="card">
+      <h2>Add-on Validator</h2>
+      <p style="font-size:12px;color:var(--dim);">Kiểm tra JSON, manifest.json, UUID, module, phiên bản và đường dẫn script. Kết quả là kiểm tra tĩnh, không thay thế việc thử pack trong Minecraft.</p>
+      <div class="row">
+        <button id="validatorOpenBtn" class="primary">📂 Chọn .mcpack / .mcaddon / .zip</button>
+        <input type="file" id="validatorFile" accept=".mcpack,.mcaddon,.zip" style="display:none">
+        <button id="validatorRunBtn">Kiểm tra pack</button>
+      </div>
+      <div class="status" id="validatorFileStatus">Chưa chọn pack.</div>
+      <h2 style="margin-top:16px;">Hoặc dán manifest.json</h2>
+      <textarea id="validatorManifestInput" placeholder='Dán nội dung manifest.json vào đây...'></textarea>
+      <div class="row" style="margin-top:8px;">
+        <button id="validatorManifestBtn" class="primary">Kiểm tra manifest</button>
+        <button id="validatorClearBtn">Xoá kết quả</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Kết quả kiểm tra</h2>
+      <div id="validatorSummary" class="status">Chưa chạy kiểm tra.</div>
+      <div id="validatorResults" style="font-size:12px;overflow-wrap:anywhere;"></div>
     </div>
   </div>
 
@@ -782,6 +807,142 @@ document.getElementById('zipBtn').onclick = () => {
     a.click();
     setStatus('packStatus', 'ZIP exported', 'ok');
   });
+};
+
+// Add-on Validator
+let validatorZip = null;
+let validatorFileName = '';
+const VALIDATOR_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function validateManifestObject(obj, path, issues, allUuids) {
+  const add = (level, message) => issues.push({ level, path, message });
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+    add('ERROR', 'Manifest phải là một JSON object.'); return;
+  }
+  if (![1, 2, 3].includes(obj.format_version)) add('WARN', 'format_version không phải 1, 2 hoặc 3; hãy đối chiếu phiên bản Bedrock mục tiêu.');
+  if (!obj.header || typeof obj.header !== 'object') add('ERROR', 'Thiếu header object.');
+  else {
+    if (typeof obj.header.name !== 'string' || !obj.header.name.trim()) add('ERROR', 'header.name bị thiếu hoặc rỗng.');
+    if (typeof obj.header.description !== 'string') add('WARN', 'header.description nên là chuỗi.');
+    if (!VALIDATOR_UUID.test(obj.header.uuid || '')) add('ERROR', 'header.uuid không đúng định dạng UUID.');
+    else if (allUuids.has(obj.header.uuid.toLowerCase())) add('ERROR', 'UUID bị trùng trong pack/add-on: ' + obj.header.uuid);
+    else allUuids.add(obj.header.uuid.toLowerCase());
+    if (!Array.isArray(obj.header.version) || obj.header.version.length !== 3 || obj.header.version.some(n => !Number.isInteger(n) || n < 0)) add('ERROR', 'header.version phải là mảng 3 số nguyên không âm.');
+    if (!Array.isArray(obj.header.min_engine_version) || obj.header.min_engine_version.length !== 3 || obj.header.min_engine_version.some(n => !Number.isInteger(n) || n < 0)) add('ERROR', 'header.min_engine_version phải là mảng 3 số nguyên không âm.');
+  }
+  if (!Array.isArray(obj.modules) || obj.modules.length === 0) add('ERROR', 'modules phải là mảng có ít nhất một module.');
+  else {
+    const validTypes = new Set(['data', 'resources', 'script', 'skin_pack', 'world_template']);
+    const moduleIds = new Set();
+    obj.modules.forEach((m, i) => {
+      const prefix = 'modules[' + i + ']';
+      if (!m || typeof m !== 'object' || Array.isArray(m)) { add('ERROR', prefix + ' phải là object.'); return; }
+      if (!validTypes.has(m.type)) add('ERROR', prefix + '.type không được nhận diện: ' + String(m.type));
+      if (!VALIDATOR_UUID.test(m.uuid || '')) add('ERROR', prefix + '.uuid không đúng định dạng UUID.');
+      else {
+        const id = m.uuid.toLowerCase();
+        if (moduleIds.has(id) || allUuids.has(id)) add('ERROR', prefix + '.uuid bị trùng: ' + m.uuid);
+        else { moduleIds.add(id); allUuids.add(id); }
+      }
+      if (!Array.isArray(m.version) || m.version.length !== 3 || m.version.some(n => !Number.isInteger(n) || n < 0)) add('ERROR', prefix + '.version phải là mảng 3 số nguyên không âm.');
+      if (m.type === 'script') {
+        if (m.language !== 'javascript') add('WARN', prefix + ' nên khai báo language là "javascript".');
+        if (typeof m.entry !== 'string' || !m.entry.trim()) add('ERROR', prefix + '.entry bị thiếu.');
+        else if (validatorZip && !validatorZip.file(m.entry)) add('ERROR', 'Không tìm thấy file script entry: ' + m.entry);
+      }
+    });
+  }
+  if (obj.dependencies !== undefined) {
+    if (!Array.isArray(obj.dependencies)) add('ERROR', 'dependencies phải là mảng.');
+    else obj.dependencies.forEach((d, i) => {
+      if (!d || typeof d !== 'object') add('ERROR', 'dependencies[' + i + '] phải là object.');
+      else if (typeof d.module_name !== 'string' && typeof d.uuid !== 'string') add('ERROR', 'dependencies[' + i + '] cần module_name hoặc uuid.');
+      if (d && d.version !== undefined && !Array.isArray(d.version) && typeof d.version !== 'string') add('WARN', 'dependencies[' + i + '].version có kiểu dữ liệu lạ.');
+    });
+  }
+}
+function renderValidatorResults(issues, fileCount) {
+  const errors = issues.filter(x => x.level === 'ERROR').length;
+  const warnings = issues.filter(x => x.level === 'WARN').length;
+  const summary = document.getElementById('validatorSummary');
+  summary.textContent = errors + ' lỗi · ' + warnings + ' cảnh báo' + (fileCount === undefined ? '' : ' · ' + fileCount + ' file JSON');
+  summary.className = 'status ' + (errors ? 'err' : 'ok');
+  const out = document.getElementById('validatorResults');
+  if (!issues.length) {
+    out.textContent = 'Không phát hiện lỗi trong các quy tắc kiểm tra tĩnh hiện có. Điều này không đảm bảo pack chạy đúng trong game.';
+    return;
+  }
+  out.replaceChildren();
+  issues.forEach(issue => {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:9px 0;border-bottom:1px solid var(--line);';
+    const strong = document.createElement('strong');
+    strong.textContent = '[' + issue.level + '] ';
+    strong.style.color = issue.level === 'ERROR' ? 'var(--warn)' : issue.level === 'WARN' ? '#e6b566' : 'var(--accent)';
+    const label = document.createElement('span');
+    label.textContent = (issue.path ? issue.path + ': ' : '') + issue.message;
+    row.append(strong, label);
+    out.appendChild(row);
+  });
+}
+function validateManifestText(raw, path = 'manifest.json', allUuids = new Set()) {
+  const issues = [];
+  let obj;
+  try { obj = JSON.parse(raw); }
+  catch (e) { issues.push({ level: 'ERROR', path, message: 'JSON không hợp lệ: ' + e.message }); renderValidatorResults(issues); return; }
+  validateManifestObject(obj, path, issues, allUuids);
+  renderValidatorResults(issues);
+}
+document.getElementById('validatorOpenBtn').onclick = () => {
+  const input = document.getElementById('validatorFile');
+  input.value = '';
+  input.click();
+};
+document.getElementById('validatorFile').onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    validatorZip = await JSZip.loadAsync(file);
+    validatorFileName = file.name;
+    document.getElementById('validatorFileStatus').textContent = 'Đã mở ' + file.name + ' (' + Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir).length + ' file).';
+    setStatus('validatorFileStatus', 'Đã mở ' + file.name, 'ok');
+  } catch (err) {
+    validatorZip = null;
+    setStatus('validatorFileStatus', 'Không đọc được archive: ' + err.message, 'err');
+  }
+};
+document.getElementById('validatorRunBtn').onclick = async () => {
+  if (!validatorZip) return setStatus('validatorFileStatus', 'Hãy chọn một file .mcpack, .mcaddon hoặc .zip trước.', 'err');
+  const issues = [];
+  const files = Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir);
+  const jsonFiles = files.filter(n => n.toLowerCase().endsWith('.json'));
+  const uuidSet = new Set();
+  let manifestCount = 0;
+  for (const path of jsonFiles) {
+    let raw;
+    try { raw = await validatorZip.file(path).async('string'); }
+    catch (err) { issues.push({ level: 'ERROR', path, message: 'Không đọc được file: ' + err.message }); continue; }
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch (err) { issues.push({ level: 'ERROR', path, message: 'JSON không hợp lệ: ' + err.message }); continue; }
+    if (path.split('/').pop().toLowerCase() === 'manifest.json') {
+      manifestCount++;
+      validateManifestObject(parsed, path, issues, uuidSet);
+    }
+  }
+  if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: 'Không tìm thấy file JSON nào trong archive.' });
+  if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: 'Không tìm thấy manifest.json.' });
+  if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: 'Tìm thấy ' + manifestCount + ' manifest.json; hãy kiểm tra cấu trúc add-on.' });
+  renderValidatorResults(issues, jsonFiles.length);
+};
+document.getElementById('validatorManifestBtn').onclick = () => {
+  validatorZip = null;
+  validateManifestText(document.getElementById('validatorManifestInput').value);
+};
+document.getElementById('validatorClearBtn').onclick = () => {
+  document.getElementById('validatorManifestInput').value = '';
+  document.getElementById('validatorResults').replaceChildren();
+  document.getElementById('validatorSummary').textContent = 'Chưa chạy kiểm tra.';
+  document.getElementById('validatorSummary').className = 'status';
 };
 
 // Pack Explorer (improved)

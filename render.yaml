@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: studio-minecraft-ai
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: ALLOWED_ORIGIN
+        value: https://slgamervn.github.io

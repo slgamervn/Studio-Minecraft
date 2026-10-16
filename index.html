@@ -847,7 +847,11 @@ function validateManifestObject(obj, path, issues, allUuids) {
       if (m.type === 'script') {
         if (m.language !== 'javascript') add('WARN', prefix + ' nên khai báo language là "javascript".');
         if (typeof m.entry !== 'string' || !m.entry.trim()) add('ERROR', prefix + '.entry bị thiếu.');
-        else if (validatorZip && !validatorZip.file(m.entry)) add('ERROR', 'Không tìm thấy file script entry: ' + m.entry);
+        else if (validatorZip) {
+          const base = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+          const entryPath = (base + m.entry).replace(/\\/g, '/').replace(/\\/+/g, '/');
+          if (!validatorZip.file(entryPath)) add('ERROR', 'Không tìm thấy file script entry: ' + entryPath);
+        }
       }
     });
   }

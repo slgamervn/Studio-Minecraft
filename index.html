@@ -801,11 +801,26 @@ document.getElementById('openPack').onchange = async e => {
     </div>`).join('') || '<div style="color:var(--dim);">Empty</div>';
   setStatus('packStatus2', list.length + ' files', 'ok');
 };
+document.getElementById('packEditContent').addEventListener('input', recordPackEdit);
+document.getElementById('packUndoBtn').onclick = () => {
+  if (!packUndoStack.length) return setStatus('packDraftStatus', 'Nothing to undo.', 'err');
+  packRedoStack.push(document.getElementById('packEditContent').value);
+  const previous = packUndoStack.pop(); document.getElementById('packEditContent').value = previous; packLastEditorText = previous; savePackDraft();
+};
+document.getElementById('packRedoBtn').onclick = () => {
+  if (!packRedoStack.length) return setStatus('packDraftStatus', 'Nothing to redo.', 'err');
+  packUndoStack.push(document.getElementById('packEditContent').value);
+  const next = packRedoStack.pop(); document.getElementById('packEditContent').value = next; packLastEditorText = next; savePackDraft();
+};
+document.getElementById('packBackupBtn').onclick = async () => {
+  if (!packZip) return setStatus('exportPackStatus', 'Open a pack first.', 'err');
+  try { const blob = await packZip.generateAsync({ type: 'blob' }); const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = 'backup-' + (document.getElementById('packExportName').value || 'pack.zip').replace(/[^\w.-]+/g, '_'); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setStatus('exportPackStatus', 'Backup downloaded.', 'ok'); }
+  catch (err) { setStatus('exportPackStatus', 'Backup failed: ' + err.message, 'err'); }
+};
 document.getElementById('exportMcpack').onclick = async () => {
   if (!packZip) return setStatus('exportPackStatus', 'Open a pack first', 'err');
-  const blob = await packZip.generateAsync({ type: 'blob' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = document.getElementById('packExportName').value || 'edited.mcpack'; a.click();
-  setStatus('exportPackStatus', 'Exported', 'ok');
+  try { const blob = await packZip.generateAsync({ type: 'blob' }); const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = (document.getElementById('packExportName').value || 'edited.mcpack').trim(); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setStatus('exportPackStatus', 'Exported archive successfully.', 'ok'); }
+  catch (err) { setStatus('exportPackStatus', 'Export failed: ' + err.message, 'err'); }
 };
 
 // === BrArchive v2 (correct fixed-256-byte format) ===
@@ -1123,6 +1138,21 @@ document.getElementById('validatorClearBtn').onclick = () => {
 // Pack Explorer: searchable, editable text files, safe DOM rendering.
 const packTextExt = /\.(json|js|mjs|cjs|ts|mcfunction|lang|txt|md|xml|html|css|properties|yaml|yml|toml|molang|material|render_controller|animation|geo\.json)$/i;
 let packSelectedPath = '';
+let packUndoStack = [];
+let packRedoStack = [];
+let packLastEditorText = '';
+const PACK_DRAFT_KEY = 'bedrock-studio-pack-draft-v1';
+function savePackDraft() {
+  try {
+    localStorage.setItem(PACK_DRAFT_KEY, JSON.stringify({ path: document.getElementById('packEditPath').value, content: document.getElementById('packEditContent').value, savedAt: new Date().toISOString() }));
+    setStatus('packDraftStatus', 'Draft autosaved locally · ' + new Date().toLocaleTimeString(), 'ok');
+  } catch { setStatus('packDraftStatus', 'Local draft storage unavailable or full. Export a backup regularly.', 'err'); }
+}
+function recordPackEdit() {
+  const current = document.getElementById('packEditContent').value;
+  if (current !== packLastEditorText) { packUndoStack.push(packLastEditorText); if (packUndoStack.length > 80) packUndoStack.shift(); packRedoStack = []; packLastEditorText = current; }
+  savePackDraft();
+}
 function renderPackFiles() {
   const tree = document.getElementById('packTree');
   if (!packZip) { tree.textContent = 'Open a pack'; return; }
@@ -1133,27 +1163,63 @@ function renderPackFiles() {
     const empty = document.createElement('div');
     empty.style.color = 'var(--dim)';
     empty.textContent = q ? 'No files match this search.' : 'Archive is empty.';
-    tree.append(empty);
-    return;
+    tree.append(empty); return;
   }
-  const frag = document.createDocumentFragment();
+  const root = { folders: new Map(), files: [] };
   for (const name of files) {
-    const row = document.createElement('div');
-    row.style.cssText = 'padding:7px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
-    const label = document.createElement('button');
-    label.type = 'button';
-    label.textContent = name;
-    label.title = 'Open text file in editor';
-    label.style.cssText = 'flex:1;min-width:180px;text-align:left;overflow-wrap:anywhere;white-space:normal;';
-    label.onclick = () => loadPackTextFile(name);
-    const download = document.createElement('button');
-    download.type = 'button'; download.textContent = 'Download';
-    download.style.cssText = 'padding:5px 8px;font-size:11px;';
-    download.onclick = () => downloadPackFile(name);
-    row.append(label, download);
-    frag.append(row);
+    const parts = name.split('/'); let node = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!node.folders.has(parts[i])) node.folders.set(parts[i], { folders: new Map(), files: [] });
+      node = node.folders.get(parts[i]);
+    }
+    node.files.push({ name, base: parts[parts.length - 1] });
   }
-  tree.append(frag);
+  const renderNode = (node, container, depth = 0) => {
+    for (const [folder, child] of node.folders) {
+      const details = document.createElement('details'); details.open = depth < 1 || Boolean(q); details.style.marginLeft = '8px';
+      const summary = document.createElement('summary'); summary.textContent = '📁 ' + folder;
+      summary.style.cssText = 'padding:7px 4px;cursor:pointer;color:var(--accent);overflow-wrap:anywhere;';
+      details.append(summary); renderNode(child, details, depth + 1); container.append(details);
+    }
+    for (const file of node.files) {
+      const row = document.createElement('div'); row.style.cssText = 'padding:6px 0 6px 8px;border-bottom:1px solid var(--line);display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:8px;';
+      const label = document.createElement('button'); label.type = 'button';
+      label.textContent = (/\.(png|jpe?g|webp|gif|svg)$/i.test(file.name) ? '🖼️ ' : '📄 ') + file.base;
+      label.title = file.name; label.style.cssText = 'flex:1;min-width:150px;text-align:left;overflow-wrap:anywhere;white-space:normal;';
+      label.onclick = () => (/\.(png|jpe?g|webp|gif|svg)$/i.test(file.name) ? previewPackImage(file.name) : loadPackTextFile(file.name));
+      const download = document.createElement('button'); download.type = 'button'; download.textContent = 'Download'; download.style.cssText = 'padding:5px 8px;font-size:11px;';
+      download.onclick = () => downloadPackFile(file.name); row.append(label, download); container.append(row);
+    }
+  };
+  renderNode(root, tree);
+}
+let packPreviewUrl = '';
+async function previewPackImage(name) {
+  if (!packZip || !packZip.file(name)) return;
+  try {
+    const blob = await packZip.file(name).async('blob');
+    if (packPreviewUrl) URL.revokeObjectURL(packPreviewUrl);
+    packPreviewUrl = URL.createObjectURL(blob);
+    const img = document.getElementById('packImagePreview');
+    img.onload = () => { document.getElementById('packImageMeta').textContent = name + ' · ' + img.naturalWidth + ' × ' + img.naturalHeight; img.classList.remove('hidden'); };
+    img.onerror = () => setStatus('packImageMeta', 'This image format cannot be previewed by the browser.', 'err');
+    img.src = packPreviewUrl;
+  } catch (err) { setStatus('packImageMeta', 'Preview failed: ' + err.message, 'err'); }
+}
+async function renderPackManifest() {
+  const out = document.getElementById('packManifestInfo');
+  if (!packZip) { out.textContent = 'Open a pack to inspect manifest.json.'; return; }
+  const paths = Object.keys(packZip.files).filter(n => !packZip.files[n].dir && n.split('/').pop().toLowerCase() === 'manifest.json');
+  out.replaceChildren();
+  if (!paths.length) { out.textContent = 'No manifest.json found.'; return; }
+  for (const path of paths) {
+    const heading = document.createElement('div'); heading.style.cssText = 'font-weight:700;color:var(--accent);margin-top:8px;'; heading.textContent = path; out.append(heading);
+    try {
+      const obj = parseJsonWithComments(await packZip.file(path).async('string'));
+      const details = [['Name',obj.header && obj.header.name],['Description',obj.header && obj.header.description],['Header UUID',obj.header && obj.header.uuid],['Header version',obj.header && obj.header.version],['Minimum engine',obj.header && obj.header.min_engine_version],['Format version',obj.format_version],['Modules',Array.isArray(obj.modules)?obj.modules.map(m=>(m.type||'unknown')+(m.entry?' · '+m.entry:'')+' · '+JSON.stringify(m.version||'')).join(' | '):'missing'],['Dependencies',Array.isArray(obj.dependencies)?obj.dependencies.map(d=>(d.module_name||d.uuid||'unknown')+' · '+JSON.stringify(d.version||'')).join(' | '):'none']];
+      for (const [label,value] of details) { const row=document.createElement('div'); row.style.cssText='padding:3px 0;overflow-wrap:anywhere;'; const strong=document.createElement('strong'); strong.textContent=label+': '; const span=document.createElement('span'); span.textContent=value==null?'—':Array.isArray(value)?value.join('.'):String(value); row.append(strong,span); out.append(row); }
+    } catch (err) { const error=document.createElement('div'); error.style.color='var(--warn)'; error.textContent='Could not parse manifest: '+err.message; out.append(error); }
+  }
 }
 async function loadPackTextFile(name) {
   if (!packZip || !packZip.file(name)) return setStatus('packEditStatus', 'File not found.', 'err');
@@ -1163,6 +1229,8 @@ async function loadPackTextFile(name) {
     packSelectedPath = name;
     document.getElementById('packEditPath').value = name;
     document.getElementById('packEditContent').value = content;
+    packUndoStack = []; packRedoStack = []; packLastEditorText = content;
+    try { const draft = JSON.parse(localStorage.getItem(PACK_DRAFT_KEY) || 'null'); if (draft && draft.path === name && typeof draft.content === 'string' && draft.content !== content && confirm('A local draft for this file exists. Restore the draft instead of the archive version?')) { document.getElementById('packEditContent').value = draft.content; packLastEditorText = draft.content; } } catch {}
     setStatus('packEditStatus', 'Opened ' + name, 'ok');
   } catch (err) {
     setStatus('packEditStatus', 'Could not open file: ' + err.message, 'err');
@@ -1183,6 +1251,10 @@ document.getElementById('openPack').onchange = async e => {
     document.getElementById('packSearch').value = '';
     document.getElementById('packExportName').value = /\.mcaddon$/i.test(f.name) ? f.name.replace(/\.mcaddon$/i, '-edited.mcaddon') : /\.mcpack$/i.test(f.name) ? f.name.replace(/\.mcpack$/i, '-edited.mcpack') : 'edited.zip';
     renderPackFiles();
+    renderPackManifest();
+    document.getElementById('packImagePreview').classList.add('hidden');
+    document.getElementById('packImageMeta').textContent = 'Choose an image in the file tree.';
+    packUndoStack = []; packRedoStack = []; packLastEditorText = '';
     const count = Object.keys(packZip.files).filter(n => !packZip.files[n].dir).length;
     setStatus('packStatus2', 'Opened ' + f.name + ' · ' + count + ' files', 'ok');
   } catch (err) {
@@ -1232,6 +1304,7 @@ document.getElementById('packSaveEdit').onclick = () => {
   const path = document.getElementById('packEditPath').value.trim().replace(/^\/+/, '');
   if (!path || !packTextExt.test(path)) return setStatus('packEditStatus', 'Enter a valid text-file path (for example: entities/example.json).', 'err');
   if (packSelectedPath && path !== packSelectedPath && packZip.file(path)) return setStatus('packEditStatus', 'That path already exists.', 'err');
+  recordPackEdit();
   packZip.file(path, document.getElementById('packEditContent').value);
   if (packSelectedPath && path !== packSelectedPath) packZip.remove(packSelectedPath);
   packSelectedPath = path;

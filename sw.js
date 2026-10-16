@@ -1,25 +1,55 @@
-const CACHE = 'mc-tools-v7';
-const ASSETS = ['./index.html', './manifest.json', './icon.svg'];
+const CACHE = 'mc-tools-v8';
+const CORE_ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(CORE_ASSETS);
+    await self.skipWaiting();
+  })());
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('mc-tools-') && key !== CACHE).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-      const copy = res.clone();
-      if (e.request.url.startsWith(self.location.origin)) {
-        caches.open(CACHE).then(c => c.put(e.request, copy));
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate' || url.pathname.endsWith('/index.html') || url.pathname === '/Studio-Minecraft/') {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request, { cache: 'no-cache' });
+        if (fresh.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put('./index.html', fresh.clone());
+        }
+        return fresh;
+      } catch {
+        return (await caches.match('./index.html')) || Response.error();
       }
-      return res;
-    }).catch(() => caches.match('./index.html')))
-  );
+    })());
+    return;
+  }
+
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        const cache = await caches.open(CACHE);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch {
+      return (await caches.match('./index.html')) || Response.error();
+    }
+  })());
 });

@@ -1,10 +1,21 @@
-const CACHE = 'mc-tools-v8';
+const CACHE = 'mc-tools-v9';
 const CORE_ASSETS = ['./index.html', './manifest.json', './icon.svg'];
+const OPTIONAL_ASSETS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     await cache.addAll(CORE_ASSETS);
+    await Promise.all(OPTIONAL_ASSETS.map(async url => {
+      try {
+        const response = await fetch(url, { mode: 'no-cors' });
+        if (response && response.type !== 'opaque' && response.ok) await cache.put(url, response);
+      } catch {}
+    }));
     await self.skipWaiting();
   })());
 });
@@ -20,7 +31,19 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (request.method !== 'GET') return;
+
+  if (url.origin !== self.location.origin) {
+    if (OPTIONAL_ASSETS.includes(url.href)) {
+      event.respondWith((async () => {
+        const cached = await caches.match(url.href);
+        if (cached) return cached;
+        try { return await fetch(request); }
+        catch { return new Response('Library unavailable offline. Reconnect to the internet and reload.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
+      })());
+    }
+    return;
+  }
 
   if (request.mode === 'navigate' || url.pathname.endsWith('/index.html') || url.pathname === '/Studio-Minecraft/') {
     event.respondWith((async () => {

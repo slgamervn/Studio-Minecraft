@@ -1003,7 +1003,7 @@ function validatorT(key, fallback) {
 function validateManifestText(raw, path = 'manifest.json', allUuids = new Set()) {
   const issues = [];
   let obj;
-  try { obj = parseJsonWithComments(raw);
+  try { obj = parseJsonWithComments(raw); }
   catch (e) { issues.push({ level: 'ERROR', path, message: validatorT('validatorJsonError', 'Invalid JSON:') + ' ' + e.message }); renderValidatorResults(issues); return; }
   validateManifestObject(obj, path, issues, allUuids);
   renderValidatorResults(issues);
@@ -1039,7 +1039,7 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     try { raw = await validatorZip.file(path).async('string'); }
     catch (err) { issues.push({ level: 'ERROR', path, message: validatorT('validatorReadError', 'Could not read file:') + ' ' + err.message }); continue; }
     let parsed;
-    try { parsed = parseJsonWithComments(raw);
+    try { parsed = parseJsonWithComments(raw); }
     catch (err) { issues.push({ level: 'ERROR', path, message: validatorT('validatorJsonError', 'Invalid JSON:') + ' ' + err.message }); continue; }
     if (path.split('/').pop().toLowerCase() === 'manifest.json') {
       manifestCount++;

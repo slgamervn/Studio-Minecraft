@@ -45,16 +45,26 @@ Bug reports, feature requests, and improvements are welcome. Please open a [GitH
 
 *Bedrock Coder Studio is an independent community tool and is not affiliated with or endorsed by Mojang or Microsoft.*
 
-## Studio AI (optional online mode)
+## Studio AI (separate backend)
 
-Studio AI answers common Bedrock questions locally first. For questions outside its built-in knowledge, it can call the optional Cloudflare Pages Function at `/api/ai`.
+The Studio interface remains hosted on GitHub Pages. Online AI requests use a separate Node.js backend in `backend/`, configured for Render. The app's **Cấu hình AI trực tuyến** panel stores the backend URL in that browser's local storage; no API key belongs in the frontend.
 
-To enable online answers on a Cloudflare Pages deployment:
+### Deploy the backend to Render
 
-1. Deploy this repository with **Cloudflare Pages** using the repository root as the build output directory. The `functions/api/ai.js` file must be included in the deployment; GitHub Pages serves static files only and does not run Pages Functions.
-2. In Cloudflare Pages → **Settings → Variables and Secrets**, add a secret named `OPENAI_API_KEY` containing your own API key. Never put the key in `index.html`, a public repository, or a message.
-3. Optionally set `OPENAI_MODEL` to a model available to your API project. The default is `gpt-4.1-mini`.
-4. Redeploy, then ask Studio AI a question not covered by its local answers.
+1. Open [Render](https://render.com/) and sign in.
+2. Choose **New → Blueprint** and connect the `slgamervn/Studio-Minecraft` GitHub repository.
+3. Render reads the repository's `render.yaml`. Check that the service root directory is `backend`, build command is `npm install`, start command is `npm start`, and health check path is `/health`.
+4. When prompted, set the secret `OPENAI_API_KEY` in Render's environment settings. Create/manage the key in your own OpenAI API account; do not commit it to GitHub or paste it into Studio's URL field. The optional `OPENAI_MODEL` defaults to `gpt-4.1-mini`.
+5. Wait for the Render deployment to finish. Open `https://YOUR-SERVICE.onrender.com/health`; a healthy service returns JSON with `"ok": true`.
+6. Open the [Studio website](https://slgamervn.github.io/Studio-Minecraft/), open **Studio AI → Cấu hình AI trực tuyến**, enter your Render service URL (without `/api/ai`), tap **Lưu URL**, then **Kiểm tra kết nối**.
+7. Ask a question not covered by the local answers to test the online mode.
 
-The backend limits each question to 1,200 characters and keeps the API key on the server. API usage may incur charges and this endpoint does not include a full account system or durable per-user rate limiting, so review usage limits and monitor usage in your API project. If the app remains hosted only on GitHub Pages, the local knowledge answers still work, but online AI requires a separately deployed backend. The online backend has not been live-tested from this repository.
+### Configuration and security
 
+- `ALLOWED_ORIGIN` is set to `https://slgamervn.github.io` by default; keep it restricted to the exact website origin.
+- The backend accepts POST requests at `/api/ai`, caps question length at 1,200 characters, and applies a basic per-process request limit.
+- The rate limit is not a complete abuse-prevention system; public deployments may need stronger rate limiting/authentication and usage monitoring.
+- API calls may incur charges. Set usage limits/alerts in your API account and monitor requests.
+- Render free services may sleep after inactivity, so the first request can be slow. Availability and free-plan details can change.
+- GitHub Pages remains static and does not run the backend. The online endpoint must be deployed separately.
+- The backend code has been added to the repository, but a live Render deployment cannot be created or verified from this commit alone.

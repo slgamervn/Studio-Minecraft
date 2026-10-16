@@ -198,7 +198,26 @@ textarea{min-height:150px;line-height:1.65}
     </div>
     <div class="card">
       <h2>Structure</h2>
+      <div class="row" style="margin-bottom:10px;">
+        <input id="packSearch" type="search" placeholder="Search files by name..." aria-label="Search pack files">
+        <button id="packAddBtn">＋ Add files</button>
+        <input id="packAddInput" type="file" multiple style="display:none">
+      </div>
       <div id="packTree"><div style="color:var(--dim);text-align:center;padding:20px;">Open a pack</div></div>
+      <div class="card" style="margin-top:12px;background:var(--panel2);">
+        <h3 style="margin-top:0;">Text file editor</h3>
+        <div class="row">
+          <input id="packEditPath" type="text" placeholder="Select a file above or enter a path" aria-label="Selected file path">
+          <button id="packLoadEdit">Open</button>
+        </div>
+        <textarea id="packEditContent" spellcheck="false" placeholder="Choose a text file to edit..." style="min-height:220px;margin-top:8px;"></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button id="packSaveEdit" class="primary">Save changes</button>
+          <button id="packRenameBtn">Rename path</button>
+          <button id="packDeleteBtn">Delete file</button>
+        </div>
+        <div id="packEditStatus" class="status" aria-live="polite"></div>
+      </div>
     </div>
     <div class="card">
       <h2>Export</h2>
@@ -1063,7 +1082,54 @@ document.getElementById('validatorClearBtn').onclick = () => {
   delete document.getElementById('validatorSummary').dataset.userStatus;
 };
 
-// Pack Explorer (improved)
+// Pack Explorer: searchable, editable text files, safe DOM rendering.
+const packTextExt = /\.(json|js|mjs|cjs|ts|mcfunction|lang|txt|md|xml|html|css|properties|yaml|yml|toml|molang|material|render_controller|animation|geo\.json)$/i;
+let packSelectedPath = '';
+function renderPackFiles() {
+  const tree = document.getElementById('packTree');
+  if (!packZip) { tree.textContent = 'Open a pack'; return; }
+  const q = document.getElementById('packSearch').value.trim().toLowerCase();
+  const files = Object.keys(packZip.files).filter(n => !packZip.files[n].dir && n.toLowerCase().includes(q)).sort();
+  tree.replaceChildren();
+  if (!files.length) {
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--dim)';
+    empty.textContent = q ? 'No files match this search.' : 'Archive is empty.';
+    tree.append(empty);
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const name of files) {
+    const row = document.createElement('div');
+    row.style.cssText = 'padding:7px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.textContent = name;
+    label.title = 'Open text file in editor';
+    label.style.cssText = 'flex:1;min-width:180px;text-align:left;overflow-wrap:anywhere;white-space:normal;';
+    label.onclick = () => loadPackTextFile(name);
+    const download = document.createElement('button');
+    download.type = 'button'; download.textContent = 'Download';
+    download.style.cssText = 'padding:5px 8px;font-size:11px;';
+    download.onclick = () => downloadPackFile(name);
+    row.append(label, download);
+    frag.append(row);
+  }
+  tree.append(frag);
+}
+async function loadPackTextFile(name) {
+  if (!packZip || !packZip.file(name)) return setStatus('packEditStatus', 'File not found.', 'err');
+  if (!packTextExt.test(name)) return setStatus('packEditStatus', 'This looks like a binary asset. Use Download instead of the text editor.', 'err');
+  try {
+    const content = await packZip.file(name).async('string');
+    packSelectedPath = name;
+    document.getElementById('packEditPath').value = name;
+    document.getElementById('packEditContent').value = content;
+    setStatus('packEditStatus', 'Opened ' + name, 'ok');
+  } catch (err) {
+    setStatus('packEditStatus', 'Could not open file: ' + err.message, 'err');
+  }
+}
 document.getElementById('openPackBtn').onclick = () => {
   const input = document.getElementById('openPack');
   input.value = '';
@@ -1071,22 +1137,108 @@ document.getElementById('openPackBtn').onclick = () => {
 };
 document.getElementById('openPack').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
-  packZip = await JSZip.loadAsync(f);
-  const list = Object.keys(packZip.files).filter(n => !packZip.files[n].dir);
-  document.getElementById('packTree').innerHTML = list.map(n => 
-    `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;">
-      <span>${n}</span>
-      <button onclick="downloadPackFile('${n.replace(/'/g,"\\'")}')" style="padding:3px 8px;font-size:11px;">Download</button>
-    </div>`).join('') || '<div style="color:var(--dim);">Empty</div>';
-  setStatus('packStatus2', list.length + ' files', 'ok');
+  try {
+    packZip = await JSZip.loadAsync(f);
+    packSelectedPath = '';
+    document.getElementById('packEditPath').value = '';
+    document.getElementById('packEditContent').value = '';
+    document.getElementById('packSearch').value = '';
+    document.getElementById('packExportName').value = /\.mcaddon$/i.test(f.name) ? f.name.replace(/\.mcaddon$/i, '-edited.mcaddon') : /\.mcpack$/i.test(f.name) ? f.name.replace(/\.mcpack$/i, '-edited.mcpack') : 'edited.zip';
+    renderPackFiles();
+    const count = Object.keys(packZip.files).filter(n => !packZip.files[n].dir).length;
+    setStatus('packStatus2', 'Opened ' + f.name + ' · ' + count + ' files', 'ok');
+  } catch (err) {
+    packZip = null;
+    setStatus('packStatus2', 'Could not read archive: ' + err.message, 'err');
+  }
+};
+document.getElementById('packSearch').oninput = renderPackFiles;
+document.getElementById('packLoadEdit').onclick = () => loadPackTextFile(document.getElementById('packEditPath').value.trim());
+document.getElementById('packSaveEdit').onclick = () => {
+  if (!packZip) return setStatus('packEditStatus', 'Open a pack first.', 'err');
+  const path = document.getElementById('packEditPath').value.trim().replace(/^\/+/, '');
+  if (!path || !packTextExt.test(path)) return setStatus('packEditStatus', 'Enter a valid text-file path (for example: entities/example.json).', 'err');
+  if (packSelectedPath && path !== packSelectedPath && packZip.file(path)) return setStatus('packEditStatus', 'That path already exists.', 'err');
+  packZip.file(path, document.getElementById('packEditContent').value);
+  if (packSelectedPath && path !== packSelectedPath) packZip.remove(packSelectedPath);
+  packSelectedPath = path;
+  document.getElementById('packEditPath').value = path;
+  renderPackFiles();
+  setStatus('packEditStatus', 'Saved changes to ' + path + '. Export the archive to download the edited pack.', 'ok');
+};
+document.getElementById('packRenameBtn').onclick = () => {
+  if (!packZip) return setStatus('packEditStatus', 'Open a pack first.', 'err');
+  const oldPath = packSelectedPath || document.getElementById('packEditPath').value.trim();
+  const newPath = document.getElementById('packEditPath').value.trim().replace(/^\/+/, '');
+  if (!oldPath || !packZip.file(oldPath)) return setStatus('packEditStatus', 'Open a file before renaming it.', 'err');
+  if (!newPath || newPath === oldPath) return setStatus('packEditStatus', 'Enter a different destination path.', 'err');
+  if (packZip.file(newPath)) return setStatus('packEditStatus', 'That path already exists.', 'err');
+  const file = packZip.file(oldPath);
+  file.async('uint8array').then(bytes => {
+    packZip.file(newPath, bytes);
+    packZip.remove(oldPath);
+    packSelectedPath = newPath;
+    document.getElementById('packEditPath').value = newPath;
+    renderPackFiles();
+    setStatus('packEditStatus', 'Renamed to ' + newPath, 'ok');
+  }).catch(err => setStatus('packEditStatus', 'Rename failed: ' + err.message, 'err'));
+};
+document.getElementById('packDeleteBtn').onclick = () => {
+  if (!packZip) return setStatus('packEditStatus', 'Open a pack first.', 'err');
+  const path = packSelectedPath || document.getElementById('packEditPath').value.trim();
+  if (!path || !packZip.file(path)) return setStatus('packEditStatus', 'Select an existing file first.', 'err');
+  if (!confirm('Delete "' + path + '" from the in-memory archive? Export to keep the change.')) return;
+  packZip.remove(path);
+  packSelectedPath = '';
+  document.getElementById('packEditPath').value = '';
+  document.getElementById('packEditContent').value = '';
+  renderPackFiles();
+  setStatus('packEditStatus', 'Deleted ' + path + '. Export the archive to save the change.', 'ok');
+};
+document.getElementById('packAddBtn').onclick = () => {
+  if (!packZip) return setStatus('packStatus2', 'Open a pack first.', 'err');
+  document.getElementById('packAddInput').value = '';
+  document.getElementById('packAddInput').click();
+};
+document.getElementById('packAddInput').onchange = async e => {
+  if (!packZip) return;
+  const files = [...e.target.files];
+  if (!files.length) return;
+  for (const file of files) {
+    const path = file.webkitRelativePath || file.name;
+    if (packZip.file(path)) {
+      setStatus('packStatus2', 'Skipped existing file: ' + path, 'err');
+      continue;
+    }
+    packZip.file(path, file);
+  }
+  renderPackFiles();
+  setStatus('packStatus2', 'Added selected files. Export the archive to keep changes.', 'ok');
 };
 window.downloadPackFile = async (name) => {
+  if (!packZip) return;
   const file = packZip.file(name);
   if (!file) return;
   const blob = await file.async('blob');
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name.split('/').pop(); a.click();
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = name.split('/').pop(); a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+document.getElementById('exportMcpack').onclick = async () => {
+  if (!packZip) return setStatus('exportPackStatus', 'Open a pack first.', 'err');
+  try {
+    const blob = await packZip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = (document.getElementById('packExportName').value || 'edited.mcpack').trim();
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setStatus('exportPackStatus', 'Exported archive successfully.', 'ok');
+  } catch (err) {
+    setStatus('exportPackStatus', 'Export failed: ' + err.message, 'err');
+  }
 };
 } catch (err) {
   const el = document.getElementById('loadStatus');

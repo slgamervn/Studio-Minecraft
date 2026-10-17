@@ -1616,11 +1616,37 @@ function validateManifestObject(obj, path, issues, allUuids) {
   }
   if (obj.dependencies !== undefined) {
     if (!Array.isArray(obj.dependencies)) add('ERROR', 'dependencies phải là mảng.');
-    else obj.dependencies.forEach((d, i) => {
-      if (!d || typeof d !== 'object') add('ERROR', 'dependencies[' + i + '] phải là object.');
-      else if (typeof d.module_name !== 'string' && typeof d.uuid !== 'string') add('ERROR', 'dependencies[' + i + '] cần module_name hoặc uuid.');
-      if (d && d.version !== undefined && !Array.isArray(d.version) && typeof d.version !== 'string') add('WARN', 'dependencies[' + i + '].version có kiểu dữ liệu lạ.');
-    });
+    else {
+      const seenDeps = new Set();
+      obj.dependencies.forEach((d, i) => {
+        const prefix = 'dependencies[' + i + ']';
+        if (!d || typeof d !== 'object' || Array.isArray(d)) { add('ERROR', prefix + ' phải là object.'); return; }
+        const hasModule = typeof d.module_name === 'string' && d.module_name.trim();
+        const hasUuid = typeof d.uuid === 'string' && d.uuid.trim();
+        if (!hasModule && !hasUuid) add('ERROR', prefix + ' cần module_name hoặc uuid.');
+        if (hasModule && hasUuid) add('WARN', prefix + ' nên khai báo module_name hoặc uuid theo đúng loại dependency.');
+        if (hasUuid && !VALIDATOR_UUID.test(d.uuid)) add('ERROR', prefix + '.uuid không đúng định dạng UUID.');
+        const key = hasModule ? 'module:' + d.module_name : 'uuid:' + String(d.uuid || '').toLowerCase();
+        if (seenDeps.has(key)) add('ERROR', 'Dependency bị khai báo trùng: ' + key);
+        seenDeps.add(key);
+        if (d.version === undefined) add('WARN', prefix + '.version bị thiếu.');
+        else if (Array.isArray(d.version)) {
+          if (d.version.length !== 3 || d.version.some(n => !Number.isInteger(n) || n < 0)) add('ERROR', prefix + '.version phải có 3 số nguyên không âm.');
+        } else if (typeof d.version === 'string') {
+          if (!/^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$/.test(d.version)) add('WARN', prefix + '.version không giống chuỗi SemVer.');
+        } else add('ERROR', prefix + '.version phải là mảng phiên bản hoặc chuỗi SemVer.');
+        if (hasModule && !['@minecraft/server','@minecraft/server-ui','@minecraft/common','@minecraft/vanilla-data'].includes(d.module_name)) add('WARN', prefix + ' dùng module_name chưa có trong danh sách tham chiếu cục bộ: ' + d.module_name);
+      });
+    }
+  }
+  if (obj.header && Array.isArray(obj.header.min_engine_version) && obj.header.min_engine_version.length === 3) {
+    const v = obj.header.min_engine_version;
+    if (v[0] < 1 || (v[0] === 1 && v[1] < 16)) add('WARN', 'min_engine_version khá cũ; hãy kiểm tra lại yêu cầu phiên bản mục tiêu.');
+  }
+  if (obj.format_version === 3) {
+    if (!obj.metadata || !Array.isArray(obj.metadata.authors) || !obj.metadata.authors.length) add('WARN', 'Manifest V3 hiện có thể yêu cầu metadata.authors theo tài liệu Microsoft; hãy xác minh trạng thái Preview của game mục tiêu.');
+    if (obj.header && typeof obj.header.version !== 'string') add('ERROR', 'Manifest V3 dùng chuỗi SemVer cho header.version theo schema Preview.');
+    if (Array.isArray(obj.modules)) obj.modules.forEach((m,i)=>{if(m && typeof m.version!=='string') add('ERROR','Manifest V3 dùng chuỗi SemVer cho modules['+i+'].version theo schema Preview.');});
   }
   if (window.StudioCompatibility && typeof window.StudioCompatibility.checkManifest === 'function') {
     window.StudioCompatibility.checkManifest(obj).forEach(issue => add(issue.level, issue.message));
@@ -1728,7 +1754,14 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     let parsed;
     try { parsed = parseJsonWithComments(raw); }
     catch (err) { issues.push({ level: 'ERROR', path, message: validatorT('validatorJsonError', 'Invalid JSON:') + ' ' + err.message }); continue; }
-    if (path.split('/').pop().toLowerCase() === 'manifest.json') {
+    const baseName = path.split('/').pop().toLowerCase();
+    const formatVersion = parsed && typeof parsed === 'object' ? parsed.format_version : undefined;
+    if (baseName !== 'manifest.json' && parsed && typeof parsed === 'object' && !Array.isArray(parsed) && formatVersion === undefined) {
+      if (/\\.(entity|item|block|client_entity|attachable|animation|animation_controller|render_controller|geometry|geo)\\.json$/i.test(baseName)) issues.push({level:'WARN',path,message:'Tệp định nghĩa Minecraft thường cần format_version; hãy kiểm tra schema riêng của loại tệp này.'});
+    }
+    if (formatVersion !== undefined && typeof formatVersion !== 'string' && typeof formatVersion !== 'number') issues.push({level:'ERROR',path,message:'format_version phải là chuỗi hoặc số theo schema của tệp.'});
+    if (typeof formatVersion === 'string' && !/^\\d+\\.\\d+\\.\\d+$/.test(formatVersion)) issues.push({level:'WARN',path,message:'format_version không theo dạng x.y.z quen thuộc; cần xác minh schema của loại tệp.'});
+    if (baseName === 'manifest.json') {
       manifestCount++;
       validateManifestObject(parsed, path, issues, uuidSet);
     }

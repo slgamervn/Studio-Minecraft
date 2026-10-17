@@ -1309,19 +1309,7 @@ document.getElementById('resetAccent').onclick = () => { document.getElementById
   $('resetAccent')?.addEventListener('click',()=>{applyAccent(defaults.accent);if(typeof setStatus==='function')setStatus('settingsStatus','Đã khôi phục màu nhấn mặc định.','ok')});
   $('resetPreferences')?.addEventListener('click',()=>{Object.keys(defaults).forEach(k=>{try{localStorage.removeItem('studio_pref_'+k)}catch(_){}});applyFont(defaults.font);applyScale(defaults.scale);applyDensity(defaults.density);applyMotion(defaults.motion);applyAccent(defaults.accent);if(typeof setStatus==='function')setStatus('settingsStatus','Đã đặt lại cài đặt giao diện.','ok')});
 })();
-// Pack Explorer (basic) — handlers moved later
 let packZip = null;
-document.getElementById('openPack').onchange = async e => {
-  const f = e.target.files[0]; if (!f) return;
-  packZip = await JSZip.loadAsync(f);
-  const list = Object.keys(packZip.files).filter(n => !packZip.files[n].dir);
-  document.getElementById('packTree').innerHTML = list.map(n => 
-    `<div style="padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;">
-      <span style="word-break:break-all;flex:1;">${n}</span>
-      <button onclick="downloadPackFile('${n.replace(/'/g,"\\'")}')" style="padding:4px 8px;font-size:11px;margin-left:8px;">Download</button>
-    </div>`).join('') || '<div style="color:var(--dim);">Empty</div>';
-  setStatus('packStatus2', list.length + ' files', 'ok');
-};
 document.getElementById('packEditContent').addEventListener('input', recordPackEdit);
 document.getElementById('packUndoBtn').onclick = () => {
   if (!packUndoStack.length) return setStatus('packDraftStatus', 'Nothing to undo.', 'err');

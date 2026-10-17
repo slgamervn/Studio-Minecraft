@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "data_version": "2026.10.17.2",
+  "data_version": "2026.10.17.3",
   "updated_utc": "2026-10-17",
   "source_policy": "Only encode rules supported by linked Microsoft Minecraft Creator documentation. A missing mapping means unknown, not unsupported.",
   "sources": [

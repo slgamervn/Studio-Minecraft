@@ -358,6 +358,27 @@ footer{font-size:11px;opacity:.78}
 }
 @media(prefers-reduced-motion:reduce){.studio-ai-fab{animation:none!important}}
 
+
+/* Compact mobile AI panel: keep the workspace visible */
+@media(max-width:640px){
+  .studio-ai-panel{
+    left:10px!important;right:10px!important;
+    bottom:calc(78px + env(safe-area-inset-bottom))!important;
+    width:auto!important;
+    height:min(62dvh,480px)!important;
+    max-height:calc(100dvh - 118px - env(safe-area-inset-bottom))!important;
+    border-radius:16px!important;
+    box-shadow:0 8px 28px rgba(0,0,0,.24)!important;
+  }
+  .studio-ai-head{padding:10px 12px!important}
+  .studio-ai-messages{padding:9px!important;gap:7px!important}
+  .studio-ai-msg{padding:8px 10px!important;font-size:12px!important;line-height:1.45!important}
+  .studio-ai-suggestions{gap:5px!important;padding:0 9px 7px!important}
+  .studio-ai-suggestions button{min-height:30px!important;padding:5px 8px!important;font-size:10px!important}
+  .studio-ai-form{padding:8px!important}
+  .studio-ai-form input{min-height:40px!important}
+  .studio-ai-form button{min-height:40px!important}
+}
 </style>
 </head>
 <body>

@@ -1158,7 +1158,21 @@ document.getElementById('decodeBtn').onclick = () => {
 };
 document.getElementById('encodeBtn').onclick = () => {
   const v = document.getElementById('uInput').value;
-  document.getElementById('uOutput').value = v.replace(/[^\x00-\x7F]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+  if (!v.length) {
+    document.getElementById('uOutput').value = '';
+    setStatus('uStatus', 'Enter text to encode', 'err');
+    return;
+  }
+  const encoded = Array.from(v, ch => {
+    const cp = ch.codePointAt(0);
+    if (cp <= 0x7F) return ch;
+    if (cp <= 0xFFFF) return '\\u' + cp.toString(16).padStart(4, '0');
+    const value = cp - 0x10000;
+    const high = 0xD800 + (value >> 10);
+    const low = 0xDC00 + (value & 0x3FF);
+    return '\\u' + high.toString(16) + '\\u' + low.toString(16);
+  }).join('');
+  document.getElementById('uOutput').value = encoded;
   setStatus('uStatus', 'Encoded', 'ok');
 };
 document.getElementById('prettyBtn').onclick = () => {

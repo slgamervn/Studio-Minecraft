@@ -2174,7 +2174,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     return best&&bestScore>=2?best.answer:null;
   }
   const BACKEND_KEY='studio_ai_backend_url_v1';
-  function cleanBackendUrl(value){const raw=String(value||'').trim().replace(/\/+$/,'');if(!raw)return '';const u=new URL(raw);if(u.protocol!=='https:'&&!(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)))throw new Error('Dùng URL HTTPS của backend (hoặc localhost khi thử trên máy).');return u.origin+u.pathname.replace(/\/+$/,'');}
+  function cleanBackendUrl(value){const raw=String(value||'').trim().replace(/\/+$/,'');if(!raw)return '';const u=new URL(raw);if(u.protocol!=='https:'&&!(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)))throw new Error('Dùng URL HTTPS của backend (hoặc localhost khi thử trên máy).');let path=u.pathname.replace(/\/+$/,'');path=path.replace(/\/(?:health|api\/ai)$/,'');return u.origin+path;}
   function getBackendUrl(){try{return cleanBackendUrl(localStorage.getItem(BACKEND_KEY)||'https://studio-minecraft-ai.onrender.com');}catch(_){return 'https://studio-minecraft-ai.onrender.com';}}
   function setBackendStatus(text){if(backendStatus)backendStatus.textContent=text;}
   if(backendInput)backendInput.value=getBackendUrl();

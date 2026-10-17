@@ -2435,11 +2435,15 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     lines.push('Manifest V3: documented as preview in the linked reference; SemVer strings and custom settings are supported by that schema, but verify the actual target game.');
     const mapped = compatibilityData.script_api.minecraft_to_server_api_partial[target];
     const releaseEvidence = (compatibilityData.script_api.release_note_evidence || {})[target];
+    const previewEvidence = (compatibilityData.script_api.preview_evidence || {})[target];
     if (mapped && mapped !== 'unknown') {
       lines.push('Evidence status: EXACT DOCUMENTED MAPPING — Microsoft versioning reference lists @minecraft/server ' + mapped + ' for Minecraft ' + target + '.');
     } else if (releaseEvidence) {
       lines.push('Evidence status: RELEASE-NOTE EVIDENCE — Microsoft release notes for Minecraft ' + target + ' explicitly state ' + releaseEvidence.module + ' ' + releaseEvidence.version + '. This is not promoted to an exact mapping from the separate versioning table.');
       lines.push('Release-note source: ' + releaseEvidence.url);
+    } else if (previewEvidence) {
+      lines.push('Evidence status: PREVIEW/BETA EVIDENCE — Microsoft documents ' + previewEvidence.module + ' ' + previewEvidence.version + ' for preview build ' + target + '. This is not stable-release compatibility evidence.');
+      lines.push('Preview source: ' + previewEvidence.url);
     } else {
       lines.push('Evidence status: UNKNOWN — no exact mapping or target-specific release-note evidence is bundled for Minecraft ' + (target || '(unset)') + '. Unknown does not mean unsupported; do not infer a version.');
     }
@@ -2546,23 +2550,26 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     const target = (byId('compatTargetVersion')?.value || '').trim();
     const api = compatibilityData.script_api.minecraft_to_server_api_partial[target];
     const releaseEvidence = (compatibilityData.script_api.release_note_evidence || {})[target];
+    const previewEvidence = (compatibilityData.script_api.preview_evidence || {})[target];
     const latestApi = compatibilityData.script_api.latest_documented_stable;
     const apiNote = byId('apiCompatNote');
     if (apiNote) apiNote.textContent = api && api !== 'unknown'
       ? 'Evidence: EXACT DOCUMENTED MAPPING — Minecraft ' + target + ' → @minecraft/server ' + api + ' in Microsoft’s versioning reference. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '.'
       : releaseEvidence
         ? 'Evidence: RELEASE-NOTE EVIDENCE — Microsoft release notes state ' + releaseEvidence.module + ' ' + releaseEvidence.version + ' ships with Minecraft ' + target + '. This is not an exact mapping-table entry. Source: ' + releaseEvidence.url
-        : 'Evidence: UNKNOWN — no exact mapping or target-specific release-note evidence is bundled for Minecraft ' + (target || '(unset)') + '. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '. Unknown does not mean unsupported.';
+        : previewEvidence
+          ? 'Evidence: PREVIEW/BETA — Microsoft documents ' + previewEvidence.module + ' ' + previewEvidence.version + ' for preview build ' + target + '. This is not stable-release compatibility. Source: ' + previewEvidence.url
+          : 'Evidence: UNKNOWN — no exact mapping or target-specific release-note evidence is bundled for Minecraft ' + (target || '(unset)') + '. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '. Unknown does not mean unsupported.';
     const templateNote = byId('templateCompatNote');
     if (templateNote) templateNote.textContent = 'Target Minecraft: ' + (target || '(unset)') + '. Template format_version is a separate file-schema version. The selected template value is a starter example, not a guarantee of latest schema or compatibility.';
   }
   byId('compatTargetVersion')?.addEventListener('input', () => { renderReport(); renderToolCompatibilityNotes(); });
   byId('compatCheckBtn')?.addEventListener('click', async () => {
     const target = (byId('compatTargetVersion')?.value || '').trim();
-    if (!/^\d+\.\d+\.\d+$/.test(target)) {
-      status('Enter a Bedrock version in x.y.z format, for example 1.26.0.', true);
+    if (!/^\d+\.\d+\.\d+(?:-preview\.\d+)?$/.test(target)) {
+      status('Enter a Bedrock version like 1.26.20 or a preview build like 1.26.60-preview.30.', true);
       const report = byId('compatReport');
-      if (report) report.textContent = 'Invalid target version. Use three numeric parts, such as 1.26.0.';
+      if (report) report.textContent = 'Invalid target version. Use x.y.z or a documented preview label such as 1.26.60-preview.30.';
       return;
     }
     if (!compatibilityData) {

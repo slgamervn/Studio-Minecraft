@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "data_version": "2026.10.17.4",
+  "data_version": "2026.10.17.5",
   "updated_utc": "2026-10-17",
   "source_policy": "Only encode rules supported by linked Microsoft Minecraft Creator documentation. A missing mapping means unknown, not unsupported.",
   "sources": [
@@ -92,6 +92,11 @@
     {
       "id": "wiki-custom-commands",
       "url": "https://wiki.bedrock.dev/scripting/custom-commands",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "release-notes-1.26.20",
+      "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.20?view=minecraft-bedrock-stable",
       "checked": "2026-10-17"
     }
   ],
@@ -228,7 +233,8 @@
     "notes": [
       "Beta API versions do not guarantee backward compatibility and may require the Beta APIs experiment.",
       "Internal APIs are not supported for custom behavior packs.",
-      "Do not infer an API version for a Minecraft release missing from the mapping."
+      "Do not infer an API version for a Minecraft release missing from the mapping.",
+      "Coverage includes documented historical stable mappings and selected 1.26.x release-note evidence. Preview builds are recorded separately; all other targets remain unknown until official evidence is added."
     ],
     "latest_documented_stable": {
       "module": "@minecraft/server",
@@ -245,6 +251,34 @@
         "meaning": "Microsoft's Minecraft 1.26.40 Creator Update Notes explicitly say this release ships @minecraft/server v2.9.0. This is release-note evidence, not an entry in the separate historical versioning table.",
         "source": "release-notes-1.26.40",
         "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.40?view=minecraft-bedrock-stable",
+        "checked": "2026-10-17"
+      },
+      "1.26.0": {
+        "module": "@minecraft/server",
+        "version": "2.5.0",
+        "status": "release-note-evidence",
+        "meaning": "Microsoft's Minecraft 1.26.0 Creator Update Notes explicitly record @minecraft/server v2.5.0. This is release-note evidence, not an entry in the separate historical versioning table.",
+        "source": "release-notes-1.26.0",
+        "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.0?view=minecraft-bedrock-stable",
+        "checked": "2026-10-17"
+      },
+      "1.26.20": {
+        "module": "@minecraft/server",
+        "version": "2.7.0",
+        "status": "release-note-evidence",
+        "meaning": "Microsoft's Minecraft 1.26.20 Creator Update Notes explicitly record @minecraft/server v2.7.0. This is release-note evidence, not an entry in the separate historical versioning table.",
+        "source": "release-notes-1.26.20",
+        "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.20?view=minecraft-bedrock-stable",
+        "checked": "2026-10-17"
+      }
+    },
+    "preview_evidence": {
+      "1.26.60-preview.30": {
+        "module": "@minecraft/server",
+        "version": "2.12.0-beta",
+        "status": "preview-evidence",
+        "meaning": "Microsoft's Script API changelog lists @minecraft/server 2.12.0-beta for Minecraft 1.26.60-preview.30. This is preview/beta evidence, not stable-release compatibility.",
+        "url": "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/changelog?view=minecraft-bedrock-experimental",
         "checked": "2026-10-17"
       }
     }

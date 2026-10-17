@@ -1575,8 +1575,8 @@ function buildBrarchive(entries) {
 function getJsonErrorLocation(text, error) {
   const message = String(error && error.message || '');
   let offset = null;
-  const positionMatch = message.match(/(?:position|at position)\\s+(\\d+)/i);
-  const lineColumnMatch = message.match(/line\\s+(\\d+)\\s+column\\s+(\\d+)/i);
+  const positionMatch = message.match(/(?:position|at position)\s+(\d+)/i);
+  const lineColumnMatch = message.match(/line\s+(\d+)\s+column\s+(\d+)/i);
   if (positionMatch) offset = Number(positionMatch[1]);
   if (offset === null && lineColumnMatch) {
     const targetLine = Number(lineColumnMatch[1]);
@@ -1584,12 +1584,12 @@ function getJsonErrorLocation(text, error) {
     let line = 1;
     offset = 0;
     while (offset < text.length && line < targetLine) {
-      if (text[offset++] === '\\n') line++;
+      if (text[offset++] === '\n') line++;
     }
     offset += Math.max(0, targetColumn - 1);
   }
   if (offset === null) {
-    const tokenMatch = message.match(/Unexpected token ['"]?(.{1,8}?)['"]?(?:,|\\s|$)/i);
+    const tokenMatch = message.match(/Unexpected token ['"]?(.{1,8}?)['"]?(?:,|\s|$)/i);
     if (tokenMatch && tokenMatch[1]) {
       const found = text.indexOf(tokenMatch[1]);
       if (found >= 0) offset = found;
@@ -1598,8 +1598,8 @@ function getJsonErrorLocation(text, error) {
   if (offset === null || !Number.isFinite(offset)) return null;
   offset = Math.max(0, Math.min(text.length, offset));
   const before = text.slice(0, offset);
-  const line = before.split('\\n').length;
-  const lastNewline = before.lastIndexOf('\\n');
+  const line = before.split('\n').length;
+  const lastNewline = before.lastIndexOf('\n');
   return { offset, line, column: offset - lastNewline };
 }
 
@@ -1618,7 +1618,7 @@ function renderJsonErrorDiagnostic(panel, text, error, location) {
   message.textContent = String(error && error.message || error);
   panel.append(message);
   if (!location) return;
-  const lines = text.split('\\n');
+  const lines = text.split('\n');
   const lineText = lines[location.line - 1] || '';
   const snippet = document.createElement('pre');
   snippet.className = 'json-error-snippet';

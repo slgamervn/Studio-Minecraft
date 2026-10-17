@@ -782,7 +782,7 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
     <div class="card" id="developerWorkbench">
       <h2>Developer Workbench</h2>
       <p class="status" data-dev-i18n="intro">JSON, JavaScript, Molang, command references and pack diagnostics in one place. Static checks cannot replace testing in Minecraft.</p>
-      <div class="row"><select id="devToolMode" aria-label="Developer tool"><option value="json">JSON Formatter / Validator</option><option value="js">JavaScript Syntax Check</option><option value="molang">Molang Quick Check</option><option value="command">Command Builder</option><option value="api">Script API Snippet Builder</option><option value="component">Component Template Builder</option><option value="pack">Pack Reference Diagnostics</option></select><button id="devRun" class="primary" data-dev-i18n="run">Run tool</button><button id="devCopy" data-dev-i18n="copy">Copy result</button></div>
+      <div class="row"><select id="devToolMode" aria-label="Developer tool"><option value="json">JSON Formatter / Validator</option><option value="js">JavaScript Syntax Check</option><option value="molang">Molang Quick Check</option><option value="command">Command Builder</option><option value="pack">Pack Reference Diagnostics</option></select><button id="devRun" class="primary" data-dev-i18n="run">Run tool</button><button id="devCopy" data-dev-i18n="copy">Copy result</button></div>
       <div class="row" id="devOptions" style="margin-top:8px;"></div>
       <textarea id="devInput" spellcheck="false" style="margin-top:8px;min-height:190px;" placeholder="Paste code, JSON, Molang, or pack JSON here..."></textarea>
       <div id="devStatus" class="status" aria-live="polite" style="margin-top:8px;"></div>
@@ -1264,7 +1264,7 @@ document.getElementById('apiCheckBtn').onclick = () => {
   const source = document.getElementById('apiCode').value;
   const version = document.getElementById('apiVersion').value;
   const notes = [];
-  try { new Function(source); } catch (err) { notes.push('Basic parser: ' + err.message + '. ES module imports/exports can trigger this check; it is not a full module parser.'); }
+  try { const parseable = source.replace(/^\\s*import\\s+.*?;?\\s*$/gm, "").replace(/^\\s*export\\s+(?=(?:const|let|var|function|class|default)\\b)/gm, ""); new Function(parseable); } catch (err) { notes.push('Basic parser: ' + err.message + '. Imports and Minecraft API availability are not fully validated.'); }
   if (/\bworld\.beforeEvents\b/.test(source)) notes.push('Review world.beforeEvents availability and event names in the versioned API docs.');
   if (/\bPlayerInputPermissions\b|\binputPermissions\b/.test(source) && version === '1.21.0') notes.push('This symbol may not exist in older 1.x targets; confirm in Microsoft Learn.');
   if (/from\s*['"]@minecraft\/server-ui['"]/.test(source)) notes.push('Ensure manifest.json declares @minecraft/server-ui with a compatible version.');
@@ -2948,7 +2948,7 @@ case "block":files["BP/blocks/"+name+".json"]=fmt({...base,"minecraft:block":{de
 case "recipe":files["BP/recipes/"+name+".json"]=fmt({format_version:"1.20.10","minecraft:recipe_shaped":{description:{identifier:id},tags:["crafting_table"],pattern:["###","###","###"],key:{"#":{item:"minecraft:planks"}},result:{item:"minecraft:chest",count:1}}});break;
 case "loot":files["BP/loot_tables/"+name+".json"]=fmt({pools:[{rolls:1,entries:[{type:"item",name:"minecraft:diamond",weight:1}]}]});break;
 case "spawn":files["BP/spawn_rules/"+name+".json"]=fmt({format_version:"1.8.0","minecraft:spawn_rules":{description:{identifier:id,population_control:"animal"},conditions:[{"minecraft:weight":{default:1},"minecraft:herd":{min_size:1,max_size:3}}]}});break;
-case "animation":files["RP/animations/"+name+".animation.json"]=fmt({format_version:"1.8.0",animations:{["animation."+n+"."+name]:{loop:true,animation_length:1,bones:{}}}});break;
+case "animation":files["RP/animation_controllers/"+name+".animation_controllers.json"]=fmt({format_version:"1.10.0",animation_controllers:{["controller.animation."+n+"."+name]:{initial_state:"default",states:{default:{animations:[]}}}}});break;
 case "render":files["RP/render_controllers/"+name+".render_controllers.json"]=fmt({format_version:"1.8.0",render_controllers:[{["controller.render."+n+"."+name]:{geometry:"Geometry.default",materials:[{"*":"Material.default"}],textures:["Texture.default"]}}]});break;
 case "particle":files["RP/particles/"+name+".particle.json"]=fmt({format_version:"1.10.0",particle_effect:{description:{identifier:id,basic_render_parameters:{material:"particles_alpha",texture:"textures/particle/particles"}},components:{"minecraft:emitter_rate_instant":{num_particles:1},"minecraft:emitter_lifetime_once":{active_time:1},"minecraft:emitter_shape_point":{},"minecraft:particle_lifetime_expression":{max_lifetime:1},"minecraft:particle_appearance_billboard":{size:[0.1,0.1],facing_camera_mode:"lookat_xyz",uv:{texture_width:1,texture_height:1,uv:[0,0],uv_size:[1,1]}}}}});break;
 case "attachable":files["RP/attachables/"+name+".json"]=fmt({format_version:"1.10.0","minecraft:attachable":{description:{identifier:id,materials:{default:"entity_alphatest"},textures:{default:"textures/items/"+name},geometry:{default:"geometry."+name},render_controllers:["controller.render.default"]}}});break;

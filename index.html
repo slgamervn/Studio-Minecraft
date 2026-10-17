@@ -917,6 +917,7 @@ applyTheme();
 
 // Unicode
 function setStatus(id, msg, type) {
+  if (window.StudioLocale && typeof window.StudioLocale.tStatus === 'function') msg = window.StudioLocale.tStatus(msg);
   const el = document.getElementById(id);
   if (el) { el.textContent = msg; el.className = 'status' + (type ? ' ' + type : ''); }
 }
@@ -2576,7 +2577,30 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   }
   select.addEventListener('change',apply);
   apply();
-  window.StudioLocale={get language(){return select.value;},t:key=>{const i=locales.indexOf(select.value);return dict[key]?.[i]||key;}};
+  const statusMap={
+    'Decoded':['Đã giải mã','Decoded','已解码','Decodificado','Didekodekan'],
+    'Encoded':['Đã mã hóa','Encoded','已编码','Codificado','Dienkodekan'],
+    'Invalid JSON':['JSON không hợp lệ','Invalid JSON','JSON 无效','JSON no válido','JSON tidak valid'],
+    'Fixed':['Đã sửa','Fixed','已修复','Corregido','Diperbaiki'],
+    'Manifest generated':['Đã tạo Manifest','Manifest generated','已生成 Manifest','Manifiesto generado','Manifest dibuat'],
+    'Downloaded':['Đã tải xuống','Downloaded','已下载','Descargado','Diunduh'],
+    'Saved':['Đã lưu','Saved','已保存','Guardado','Disimpan'],
+    'Nothing to undo.':['Không có thao tác để hoàn tác.','Nothing to undo.','没有可撤销的操作。','No hay nada que deshacer.','Tidak ada tindakan untuk dibatalkan.'],
+    'Nothing to redo.':['Không có thao tác để làm lại.','Nothing to redo.','没有可重做的操作。','No hay nada que rehacer.','Tidak ada tindakan untuk diulangi.'],
+    'Open a pack first.':['Hãy mở pack trước.','Open a pack first.','请先打开 pack。','Abre un pack primero.','Buka pack terlebih dahulu.'],
+    'File not found.':['Không tìm thấy tệp.','File not found.','未找到文件。','Archivo no encontrado.','File tidak ditemukan.'],
+    'Format JSON only works with .json files.':['Chỉ định dạng JSON cho tệp .json.','JSON formatting only works with .json files.','JSON 格式化仅适用于 .json 文件。','El formato JSON solo funciona con archivos .json.','Format JSON hanya untuk file .json.'],
+    'That path already exists.':['Đường dẫn đó đã tồn tại.','That path already exists.','该路径已存在。','Esa ruta ya existe.','Path tersebut sudah ada.'],
+    'Select an existing file first.':['Hãy chọn tệp có sẵn trước.','Select an existing file first.','请先选择现有文件。','Selecciona primero un archivo existente.','Pilih file yang sudah ada terlebih dahulu.']
+  };
+  function tStatus(message){
+    const ix=locales.indexOf(select.value),raw=String(message??'');
+    if(ix===0)return raw;
+    if(statusMap[raw])return statusMap[raw][ix];
+    for(const [prefix,values] of Object.entries(statusMap)){if(prefix.endsWith(': ')&&raw.startsWith(prefix))return values[ix]+raw.slice(prefix.length);}
+    return raw;
+  }
+  window.StudioLocale={get language(){return select.value;},t:key=>{const i=locales.indexOf(select.value);return dict[key]?.[i]||key;},tStatus};
 })();
 </script>
 </body>

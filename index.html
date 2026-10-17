@@ -869,6 +869,7 @@ function applyLang() {
     const el = document.getElementById(id);
     if (el && t[key]) el.textContent = t[key];
   }
+  document.dispatchEvent(new Event('studio-language-change'));
 }
 document.getElementById('langSelect').onchange = () => {
   try { localStorage.setItem(LANGUAGE_KEY, document.getElementById('langSelect').value); } catch {}
@@ -2184,6 +2185,31 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 (function(){
   const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput'),backendInput=document.getElementById('studioAiBackendUrl'),backendStatus=document.getElementById('studioAiBackendStatus'),saveBackend=document.getElementById('studioAiSaveBackend'),testBackend=document.getElementById('studioAiTestBackend');
   if(!panel||!fab||!messages||!form||!input)return;
+  const aiUi = {
+    vi:{subtitle:'Trợ lý Bedrock • AI trực tuyến + dự phòng ngoại tuyến',close:'Đóng',config:'Cấu hình AI trực tuyến',auto:'Chọn AI tự động',autoHelp:'Studio tự thử các nhà cung cấp đã cấu hình và chuyển AI khi gặp lỗi.',backend:'Backend URL (Render)',save:'Lưu URL',test:'Kiểm tra kết nối',unconfigured:'Chưa cấu hình backend; câu trả lời ngoại tuyến vẫn dùng được.',placeholder:'Hỏi về Minecraft Bedrock...',send:'Gửi',suggestions:['Manifest là gì?','Lỗi JSON thì sửa sao?','Script API version chọn thế nào?','Làm sao giữ achievement-friendly?'],labels:['Manifest','Lỗi JSON','Script API','Achievement-friendly']},
+    en:{subtitle:'Bedrock assistant • Online AI + offline fallback',close:'Close',config:'Online AI settings',auto:'Automatic AI provider',autoHelp:'Studio tries configured providers and switches automatically if one fails.',backend:'Backend URL (Render)',save:'Save URL',test:'Test connection',unconfigured:'Backend is not configured; offline answers are still available.',placeholder:'Ask about Minecraft Bedrock...',send:'Send',suggestions:['What is a manifest?','How do I fix JSON errors?','How do I choose a Script API version?','How can I keep achievements enabled?'],labels:['Manifest','JSON errors','Script API','Achievement-friendly']},
+    zh:{subtitle:'基岩版助手 • 在线 AI + 离线备用',close:'关闭',config:'在线 AI 设置',auto:'自动选择 AI 服务',autoHelp:'Studio 会尝试已配置的服务，并在出错时自动切换。',backend:'后端 URL（Render）',save:'保存 URL',test:'测试连接',unconfigured:'尚未配置后端；仍可使用离线回答。',placeholder:'询问 Minecraft 基岩版...',send:'发送',suggestions:['什么是 manifest？','如何修复 JSON 错误？','如何选择 Script API 版本？','如何保持成就可用？'],labels:['Manifest','JSON 错误','Script API','成就兼容']},
+    es:{subtitle:'Asistente Bedrock • IA en línea + respaldo sin conexión',close:'Cerrar',config:'Configuración de IA en línea',auto:'Proveedor de IA automático',autoHelp:'Studio prueba los proveedores configurados y cambia automáticamente si uno falla.',backend:'URL del backend (Render)',save:'Guardar URL',test:'Probar conexión',unconfigured:'El backend no está configurado; las respuestas sin conexión siguen disponibles.',placeholder:'Pregunta sobre Minecraft Bedrock...',send:'Enviar',suggestions:['¿Qué es un manifest?','¿Cómo corrijo errores JSON?','¿Cómo elijo una versión de Script API?','¿Cómo mantengo los logros activados?'],labels:['Manifest','Errores JSON','Script API','Compatible con logros']},
+    id:{subtitle:'Asisten Bedrock • AI online + cadangan offline',close:'Tutup',config:'Pengaturan AI online',auto:'Penyedia AI otomatis',autoHelp:'Studio mencoba penyedia yang dikonfigurasi dan beralih otomatis jika terjadi kesalahan.',backend:'URL backend (Render)',save:'Simpan URL',test:'Uji koneksi',unconfigured:'Backend belum dikonfigurasi; jawaban offline tetap tersedia.',placeholder:'Tanyakan tentang Minecraft Bedrock...',send:'Kirim',suggestions:['Apa itu manifest?','Bagaimana memperbaiki kesalahan JSON?','Bagaimana memilih versi Script API?','Bagaimana menjaga achievement tetap aktif?'],labels:['Manifest','Kesalahan JSON','Script API','Achievement-friendly']}
+  };
+  function applyStudioAiLanguage(){
+    const lang=document.getElementById('langSelect')?.value||'en',t=aiUi[lang]||aiUi.en;
+    const set=(selector,value)=>{const el=panel.querySelector(selector);if(el)el.textContent=value;};
+    set('.studio-ai-head small',t.subtitle);
+    const closeButton=document.getElementById('studioAiClose');if(closeButton)closeButton.setAttribute('aria-label',t.close);
+    const details=panel.querySelector('details');if(details){const summary=details.querySelector('summary');if(summary)summary.textContent=t.config;}
+    const strongs=panel.querySelectorAll('details div[style*="font-weight:600"]');if(strongs[0])strongs[0].textContent=t.auto;
+    const help=panel.querySelector('details div[style*="font-size:11px"]');if(help)help.textContent=t.autoHelp;
+    const labels=panel.querySelectorAll('details label');if(labels[0])labels[0].textContent=t.backend;
+    const save=document.getElementById('studioAiSaveBackend');if(save)save.textContent=t.save;
+    const test=document.getElementById('studioAiTestBackend');if(test)test.textContent=t.test;
+    if(backendStatus&&!backendStatus.dataset.userStatus)backendStatus.textContent=t.unconfigured;
+    input.placeholder=t.placeholder;input.setAttribute('aria-label',t.placeholder);
+    const send=form.querySelector('button[type="submit"]');if(send)send.textContent=t.send;
+    panel.querySelectorAll('[data-ai-question]').forEach((button,i)=>{if(t.suggestions[i])button.dataset.aiQuestion=t.suggestions[i];if(t.labels[i])button.textContent=t.labels[i];});
+  }
+  document.addEventListener('studio-language-change',applyStudioAiLanguage);
+  applyStudioAiLanguage();
   const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9@._-]+/g,' ').trim();
   const kb=[
     {keys:['manifest','manifest.json','header uuid','module uuid'],answer:'Manifest là tệp mô tả gói Minecraft: Bedrock. Nó khai báo format_version, header, modules, UUID, version và min_engine_version. Mỗi pack cần UUID hợp lệ; UUID của header và từng module không nên trùng nhau. Hãy dùng tab Manifest để tạo hoặc kiểm tra cấu trúc. Lưu ý: format_version của manifest khác với format_version trong các tệp JSON khác.'},

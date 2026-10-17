@@ -2348,9 +2348,9 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   const headingMap=[
     ['#tab-tools .card:nth-child(1) h2','unicode'],['#tab-tools .card:nth-child(2) h2','uuid'],
     ['#tab-brarchive .card:nth-child(1) h2','archive'],['#tab-brarchive .card:nth-child(2) h2','files'],['#tab-brarchive .card:nth-child(3) h2','export'],
-    ['#tab-pack .card:nth-child(1) h2','pack'],['#tab-pack .card:nth-child(2) h2','structure'],
-    ['#packImageMeta',''],['#tab-pack .card:nth-child(3) h3','imagePreview'],['#tab-pack .card:nth-child(4) h3','manifestOverview'],['#tab-pack .card:nth-child(5) h3','textEditor'],
-    ['#tab-pack .card:nth-child(2) .card h2','manifestOverview'],['#tab-pack .card:nth-child(3) h2','export'],
+    ['#tab-pack > .card:nth-child(1) h2','pack'],['#tab-pack > .card:nth-child(2) > h2','structure'],
+    ['#tab-pack > .card:nth-child(2) .card:nth-of-type(1) h3','imagePreview'],['#tab-pack > .card:nth-child(2) .card:nth-of-type(2) h3','manifestOverview'],['#tab-pack > .card:nth-child(2) .card:nth-of-type(3) h3','textEditor'],
+    ['#tab-pack > .card:nth-child(3) h2','export'],
     ['#tab-manifest .card h2','generateManifest'],['#tab-manifest .card .card h3','manifestOptions'],
     ['#tab-lang .card:nth-child(1) h2','langEditor'],['#tab-lang .card:nth-child(2) h2','quickTemplates'],
     ['#tab-coder .card:nth-child(1) h2','packSkeleton'],['#tab-coder .card:nth-child(3) h2','scriptHelper'],['#tab-coder .card:nth-child(4) h2','snippets'],

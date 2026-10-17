@@ -1791,27 +1791,82 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorNoJson', 'No JSON files found in archive.') });
   if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: validatorT('validatorNoManifest', 'manifest.json not found.') });
   if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorMultiManifest', 'Multiple manifest.json files found; check add-on structure.') });
-  const normalizedFiles = new Set(files.map(n => n.replace(/\\/g, '/').toLowerCase()));
-  const imageFiles = new Set(files.filter(n => /\.(png|tga|jpg|jpeg|webp)$/i.test(n)).map(n => n.replace(/\\/g, '/').replace(/\.(png|tga|jpg|jpeg|webp)$/i, '').toLowerCase()));
-  const textureRefs = new Map();
+  const normalizePath = value => String(value || '').replace(/\\\\/g, '/').replace(/^\\/+/, '').replace(/\\/+/g, '/').replace(/\\.\\//g, '').toLowerCase();
+  const normalizedFiles = new Set(files.map(normalizePath));
+  const imageFiles = new Set(files.filter(n => /\\.(png|tga|jpg|jpeg|webp)$/i.test(n)).map(n => normalizePath(n).replace(/\\.(png|tga|jpg|jpeg|webp)$/i, '')));
+  const jsonObjects = new Map();
   for (const path of jsonFiles) {
-    let obj;
-    try { obj = parseJsonWithComments(await validatorZip.file(path).async('string')); } catch { continue; }
-    const visit = (value, key = '') => {
+    try { jsonObjects.set(path, parseJsonWithComments(await validatorZip.file(path).async('string'))); } catch {}
+  }
+  const refSeen = new Set();
+  const addRef = (level, path, message) => {
+    const key = level + '|' + path + '|' + message;
+    if (!refSeen.has(key)) { refSeen.add(key); issues.push({level,path,message}); }
+  };
+  const existsPath = candidates => candidates.some(candidate => normalizedFiles.has(normalizePath(candidate)));
+  const resolveRelative = (from, ref, extensions = []) => {
+    const value = String(ref || '').replace(/\\\\/g, '/').replace(/^\\/+/, '');
+    const base = from.includes('/') ? from.slice(0, from.lastIndexOf('/') + 1) : '';
+    const stack = [];
+    for (const part of (base + value).split('/')) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); }
+    const basePath = stack.join('/');
+    return [basePath, ...extensions.map(ext => basePath + ext)];
+  };
+  const geoNames = new Set();
+  const animationNames = new Set();
+  const renderControllerNames = new Set();
+  const textureAliases = new Set();
+  for (const [path,obj] of jsonObjects) {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
+    const text = path.toLowerCase();
+    const keys = Object.keys(obj);
+    if (text.includes('geometry') || text.endsWith('.geo.json')) {
+      const geometries = obj['minecraft:geometry'] || obj['geometry'];
+      if (Array.isArray(geometries)) geometries.forEach(g => { if (g && typeof g.description?.identifier === 'string') geoNames.add(g.description.identifier.toLowerCase()); });
+      if (obj['minecraft:geometry'] && !Array.isArray(geometries)) addRef('WARN',path,'Geometry file uses a non-array minecraft:geometry value; verify the schema for its format_version.');
+    }
+    if (text.includes('animation')) {
+      const animations = obj.animations || obj.animation_controllers;
+      if (animations && typeof animations === 'object') Object.keys(animations).forEach(k => animationNames.add(k.toLowerCase()));
+    }
+    if (text.includes('render_controller') && obj.render_controllers && typeof obj.render_controllers === 'object') Object.keys(obj.render_controllers).forEach(k => renderControllerNames.add(k.toLowerCase()));
+    if (obj.texture_data && typeof obj.texture_data === 'object') Object.keys(obj.texture_data).forEach(k => textureAliases.add(k.toLowerCase()));
+  }
+  const addTextureRef = (path, value, key) => {
+    const val = String(value || '').replace(/\\\\/g, '/').replace(/^\\/+/, '');
+    if (!val || val.includes('://') || /^(minecraft:|geometry\\.|controller\\.|animation\\.|query\\.|variable\\.|temp\\.)/i.test(val)) return;
+    if (/^textures\\//i.test(val)) {
+      const stripped = val.replace(/\\.(png|tga|jpg|jpeg|webp)$/i, '');
+      const candidates = [stripped, ...['.png','.tga','.jpg','.jpeg','.webp'].map(ext => stripped + ext)];
+      if (!existsPath(candidates)) addRef('WARN',path,'Texture file reference may be missing: "' + val + '" (checked conventional image extensions). Texture atlas keys are not file paths and are handled separately.');
+      return;
+    }
+    if (/^texture\\./i.test(val) && !textureAliases.has(val.replace(/^texture\\./i,'').toLowerCase())) addRef('WARN',path,'Texture alias "' + val + '" was not found in texture_data keys; verify atlas key conventions.');
+  };
+  for (const [path,obj] of jsonObjects) {
+    const visit = (value, key = '', parent = '') => {
       if (typeof value === 'string') {
-        const val = value.replace(/\\/g, '/').replace(/^\/+/, '');
-        if (/texture/i.test(key) && val.startsWith('textures/')) {
-          const keyPath = val.replace(/\.(png|tga|jpg|jpeg|webp)$/i, '').toLowerCase();
-          if (!textureRefs.has(keyPath)) textureRefs.set(keyPath, []);
-          textureRefs.get(keyPath).push(path + ' → ' + key);
+        const k = key.toLowerCase(), v = value.trim();
+        if (/^textures?$/i.test(k) || /texture/i.test(k) && !/atlas|path|data/i.test(k)) addTextureRef(path,v,key);
+        if (/geometry/i.test(k) && /^geometry\\./i.test(v) && !geoNames.has(v.toLowerCase())) addRef('WARN',path,'Geometry identifier "' + v + '" was not found in scanned geometry files. Confirm the geometry file is included and registered.');
+        if (/animation/i.test(k) && /^animation\\./i.test(v) && !animationNames.has(v.toLowerCase())) addRef('WARN',path,'Animation identifier "' + v + '" was not found in scanned animation files.');
+        if (/render_controller/i.test(k) && /^controller\\.render\\./i.test(v) && !renderControllerNames.has(v.toLowerCase())) addRef('WARN',path,'Render controller "' + v + '" was not found in scanned render-controller files.');
+        if (/^(geometry|animation|render_controller|texture)/i.test(k) && /^(textures\\/|models\\/|animations\\/|animation_controllers\\/|render_controllers\\/)/i.test(v)) {
+          const candidates = resolveRelative(path,v,['.json','.geo.json']);
+          if (!existsPath(candidates)) addRef('WARN',path,'Referenced resource path may be missing: "' + v + '" (checked relative path and common JSON extensions).');
         }
-      } else if (Array.isArray(value)) value.forEach(v => visit(v, key));
-      else if (value && typeof value === 'object') Object.entries(value).forEach(([k, v]) => visit(v, k));
+      } else if (Array.isArray(value)) value.forEach(v => visit(v,key,parent));
+      else if (value && typeof value === 'object') Object.entries(value).forEach(([k,v]) => visit(v,k,key));
     };
     visit(obj);
-  }
-  for (const [texturePath, locations] of textureRefs) {
-    if (!imageFiles.has(texturePath)) issues.push({ level: 'WARN', path: locations[0].split(' → ')[0], message: 'Texture path may be missing: ' + texturePath + '. Check texture atlas keys and actual image paths.' });
+    const base = path.split('/').pop().toLowerCase();
+    const fv = obj && obj.format_version;
+    if (base.endsWith('.entity.json') && !obj['minecraft:client_entity']) addRef('WARN',path,'Filename resembles a client entity, but minecraft:client_entity is absent.');
+    if (base.endsWith('.entity.json') && obj['minecraft:client_entity'] && !obj['minecraft:client_entity'].description) addRef('ERROR',path,'minecraft:client_entity.description is required for a typical client-entity definition.');
+    if (base.endsWith('.json') && fv !== undefined && typeof fv === 'string' && /^\\d+\\.\\d+\\.\\d+$/.test(fv) === false) addRef('WARN',path,'format_version is not in the common x.y.z form; confirm the resource-specific schema.');
+    if (/\\.geo\\.json$/.test(base) && !obj['minecraft:geometry'] && !obj.geometry) addRef('WARN',path,'Geometry-like file does not expose minecraft:geometry; verify the geometry format and path.');
+    if (/animation_controller/i.test(base) && !obj.animation_controllers) addRef('WARN',path,'Animation-controller-like file does not expose animation_controllers.');
+    if (/render_controller/i.test(base) && !obj.render_controllers) addRef('WARN',path,'Render-controller-like file does not expose render_controllers.');
   }
   for (const path of files.filter(n => /\.(js|mjs)$/i.test(n))) {
     let source = '';
@@ -1865,7 +1920,7 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     const deps = Array.isArray(record.manifest?.dependencies) ? record.manifest.dependencies : [];
     for (const dep of deps) {
       if (!dep || typeof dep.uuid !== 'string' || !VALIDATOR_UUID.test(dep.uuid)) continue;
-      if (!knownPackUuids.has(dep.uuid.toLowerCase())) issues.push({ level: 'WARN', path: record.path, message: 'Dependency UUID không khớp header/module UUID nào trong archive: ' + dep.uuid + '. Nếu đây là dependency bên ngoài, hãy xác minh nó đã được cài đặt.' });
+      if (!knownPackUuids.has(dep.uuid.toLowerCase())) issues.push({ level: 'INFO', path: record.path, message: 'Dependency UUID không nằm trong archive này: ' + dep.uuid + '. Đây có thể là pack bên ngoài đã cài riêng; validator không đánh dấu là dependency thiếu.' });
     }
   }
   const hasFile = path => normalizedFiles.has(path.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+/g, '/').toLowerCase());

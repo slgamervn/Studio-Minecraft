@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "data_version": "2026.10.17.3",
+  "data_version": "2026.10.17.4",
   "updated_utc": "2026-10-17",
   "source_policy": "Only encode rules supported by linked Microsoft Minecraft Creator documentation. A missing mapping means unknown, not unsupported.",
   "sources": [
@@ -199,7 +199,7 @@
     ]
   },
   "script_api": {
-    "policy": "Historical exact mappings are provided only where Microsoft Learn explicitly lists them. Latest documented module versions are shown separately and must not be treated as exact game-version mappings.",
+    "policy": "Show three evidence states separately: exact mappings explicitly listed in Microsoft's versioning reference; release-note evidence explicitly stated for a release; and unknown when neither source documents the target. Never promote release-note evidence to an exact mapping or infer unsupported status.",
     "minecraft_to_server_api_partial": {
       "1.19.70": "1.0.0",
       "1.19.80": "1.1.0",
@@ -236,6 +236,17 @@
       "evidence": "Microsoft Learn lists 2.10.0 as latest stable module and lists 2.12.0-beta for preview 1.26.60; this is not a guarantee that every target game build supports it.",
       "checked": "2026-10-17",
       "url": "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable"
+    },
+    "release_note_evidence": {
+      "1.26.40": {
+        "module": "@minecraft/server",
+        "version": "2.9.0",
+        "status": "release-note-evidence",
+        "meaning": "Microsoft's Minecraft 1.26.40 Creator Update Notes explicitly say this release ships @minecraft/server v2.9.0. This is release-note evidence, not an entry in the separate historical versioning table.",
+        "source": "release-notes-1.26.40",
+        "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.40?view=minecraft-bedrock-stable",
+        "checked": "2026-10-17"
+      }
     }
   },
   "file_formats": {

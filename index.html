@@ -2239,9 +2239,12 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     lines.push('Manifest V2: documented stable format for behavior/resource/world-template packs; version fields use integer arrays.');
     lines.push('Manifest V3: documented as preview in the linked reference; SemVer strings and custom settings are supported by that schema, but verify the actual target game.');
     const mapped = compatibilityData.script_api.minecraft_to_server_api_partial[target];
-    lines.push(mapped ? 'Official versioning reference mapping: @minecraft/server ' + mapped + ' for Minecraft ' + target + ' (historical partial table).' :
-      'Script API mapping: no exact entry for this target in the bundled partial reference. Do not guess the dependency version.');
+    lines.push(mapped && mapped !== 'unknown' ? 'Official versioning reference mapping: @minecraft/server ' + mapped + ' for Minecraft ' + target + ' (historical partial table).' :
+      'Exact Script API mapping: not documented in this bundled table for Minecraft ' + (target || '(unset)') + '. This is unknown, not unsupported; do not infer a version.');
+    const latestApi = compatibilityData.script_api.latest_documented_stable;
+    if (latestApi) lines.push('Latest documented stable API module: ' + latestApi.module + ' ' + latestApi.version + ' (' + latestApi.checked + '). This is not an exact mapping to your target game version.');
     lines.push('JSON format_version values belong to each file schema and must not be automatically equated with the game version.');
+    lines.push('Scope: static rules and schema checks only. This cannot launch Minecraft or prove that a pack works in-game.');
     host.replaceChildren();
     lines.forEach(line => { const div=document.createElement('div'); div.textContent='• '+line; host.append(div); });
   }
@@ -2288,10 +2291,11 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     if (!compatibilityData) return;
     const target = (byId('compatTargetVersion')?.value || '').trim();
     const api = compatibilityData.script_api.minecraft_to_server_api_partial[target];
+    const latestApi = compatibilityData.script_api.latest_documented_stable;
     const apiNote = byId('apiCompatNote');
-    if (apiNote) apiNote.textContent = api
-      ? 'Bundled official reference: Minecraft ' + target + ' maps to @minecraft/server ' + api + '. This is a partial historical mapping; confirm current requirements in Microsoft Learn.'
-      : 'No exact @minecraft/server mapping is included for Minecraft ' + (target || '(unset)') + '. Script API versions are independent of game versions; do not infer a dependency version.';
+    if (apiNote) apiNote.textContent = api && api !== 'unknown'
+      ? 'Microsoft reference mapping: Minecraft ' + target + ' → @minecraft/server ' + api + ' (historical partial table). Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '. Confirm target-build support before using it.'
+      : 'No exact official mapping is bundled for Minecraft ' + (target || '(unset)') + '. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '; this is not an exact target-version mapping. Unknown does not mean unsupported.';
     const templateNote = byId('templateCompatNote');
     if (templateNote) templateNote.textContent = 'Target Minecraft: ' + (target || '(unset)') + '. Template format_version is a separate file-schema version. The selected template value is a starter example, not a guarantee of latest schema or compatibility.';
   }

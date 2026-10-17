@@ -824,6 +824,59 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
       </div>
       <div class="status" id="settingsStatus" aria-live="polite"></div>
     </div>
+    <div class="card" id="personalizationCard">
+      <h2>Cá nhân hóa Studio</h2>
+      <p style="font-size:12px;color:var(--dim);line-height:1.7;margin-top:-4px">Lưu hồ sơ riêng cho từng dự án Bedrock và tùy chỉnh cách Studio hoạt động. Dữ liệu được lưu trên trình duyệt hiện tại; không tự đồng bộ giữa thiết bị.</p>
+      <div class="settings-grid">
+        <label for="personalProjectName">Tên dự án</label>
+        <input id="personalProjectName" type="text" maxlength="80" placeholder="Ví dụ: Simple Ultimate" style="width:100%">
+        <label for="personalProjectVersions">Phiên bản Bedrock mục tiêu</label>
+        <input id="personalProjectVersions" type="text" maxlength="160" placeholder="Ví dụ: 1.26.50, 1.26.52" style="width:100%">
+        <label for="personalProjectType">Loại dự án</label>
+        <select id="personalProjectType" style="width:100%">
+          <option value="bp-rp">Behavior Pack + Resource Pack</option>
+          <option value="bp">Behavior Pack</option>
+          <option value="rp">Resource Pack</option>
+          <option value="script">Script API Add-on</option>
+          <option value="ui">UI / Resource Pack tùy chỉnh</option>
+          <option value="tool">Công cụ phát triển</option>
+          <option value="other">Khác</option>
+        </select>
+        <label for="personalProjectApi">Script API (nếu có)</label>
+        <input id="personalProjectApi" type="text" maxlength="80" placeholder="Ví dụ: @minecraft/server 2.10.0" style="width:100%">
+        <label for="personalProjectNamespace">Namespace</label>
+        <input id="personalProjectNamespace" type="text" maxlength="80" placeholder="mypack" style="width:100%">
+        <label for="personalProjectNotes">Ghi chú / quy tắc riêng</label>
+        <textarea id="personalProjectNotes" rows="3" maxlength="2000" placeholder="Ví dụ: ưu tiên achievement-friendly, không tự xóa tính năng..."></textarea>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" class="primary" id="personalSaveProject">Lưu hồ sơ</button>
+        <button type="button" id="personalCancelEdit" hidden>Hủy sửa</button>
+      </div>
+      <div class="status" id="personalProjectStatus" aria-live="polite"></div>
+      <h3 style="margin:18px 0 8px">Hồ sơ đã lưu</h3>
+      <div id="personalProjectList" style="display:grid;gap:8px"></div>
+      <div class="status" id="personalProjectEmpty">Chưa có hồ sơ. Tạo một hồ sơ để lưu cấu hình riêng cho dự án.</div>
+      <div style="height:1px;background:var(--line);margin:18px 0"></div>
+      <h3 style="margin:0 0 10px">Thói quen sử dụng</h3>
+      <div style="display:grid;gap:10px">
+        <label style="display:flex;gap:9px;align-items:flex-start;color:var(--text)"><input type="checkbox" id="personalConfirmApply" checked style="margin-top:4px"> Hỏi xác nhận trước khi áp dụng hồ sơ vào cài đặt hiện tại</label>
+        <label style="display:flex;gap:9px;align-items:flex-start;color:var(--text)"><input type="checkbox" id="personalRememberLast" style="margin-top:4px"> Ghi nhớ hồ sơ được chọn lần gần nhất trên thiết bị này</label>
+        <label for="personalPreferredWorkflow">Cách làm việc ưu tiên</label>
+        <select id="personalPreferredWorkflow" style="width:100%">
+          <option value="review">Phân tích và chuẩn bị bản sửa để tôi duyệt</option>
+          <option value="suggest">Chỉ đề xuất, không tự áp dụng</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="personalSavePrefs">Lưu thói quen</button>
+        <button type="button" id="personalExport">Xuất dữ liệu JSON</button>
+        <button type="button" id="personalImportButton">Nhập dữ liệu JSON</button>
+        <input type="file" id="personalImportFile" accept=".json,application/json" hidden>
+        <button type="button" id="personalClearAll">Xóa dữ liệu cá nhân hóa</button>
+      </div>
+      <div class="status" id="personalDataStatus" aria-live="polite">Dữ liệu chỉ nằm trong bộ nhớ trình duyệt này. Hãy xuất JSON nếu muốn chuyển sang thiết bị khác.</div>
+    </div>
     <div class="card">
       <h2>Thiết lập cho pack</h2>
       <div class="row">
@@ -3172,5 +3225,183 @@ const wo=document.getElementById("wikiOutput");if(wo)wo.placeholder=t.wikiOutput
 document.addEventListener("studio-language-change",apply);document.addEventListener("DOMContentLoaded",apply);apply();
 })();
 </script>
+
+<script>
+(function(){
+  "use strict";
+  const KEY = "studio-minecraft.personalization.v1";
+  const $ = id => document.getElementById(id);
+  const defaults = () => ({version:1,profiles:[],preferences:{confirmApply:true,rememberLast:false,workflow:"review"},lastProfileId:null});
+  const read = () => {
+    try {
+      const value = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (!value || value.version !== 1 || !Array.isArray(value.profiles)) return defaults();
+      value.preferences = {...defaults().preferences,...(value.preferences||{})};
+      value.profiles = value.profiles.filter(p => p && typeof p.id === "string" && typeof p.name === "string");
+      return value;
+    } catch { return defaults(); }
+  };
+  let data = read();
+  let editingId = null;
+  const write = () => {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); return true; }
+    catch { setStatus("personalDataStatus","Không lưu được. Bộ nhớ trình duyệt có thể đã đầy hoặc bị chặn.",true); return false; }
+  };
+  const setStatus = (id,message,error=false) => { const el=$(id); if(el){el.textContent=message;el.classList.toggle("err",error);el.classList.toggle("ok",!error);} };
+  const value = id => $(id).value.trim();
+  const formProfile = () => ({
+    name:value("personalProjectName"),
+    versions:value("personalProjectVersions"),
+    type:$("personalProjectType").value,
+    api:value("personalProjectApi"),
+    namespace:value("personalProjectNamespace"),
+    notes:value("personalProjectNotes")
+  });
+  const clearForm = () => {
+    editingId=null;
+    ["personalProjectName","personalProjectVersions","personalProjectApi","personalProjectNamespace","personalProjectNotes"].forEach(id=>$(id).value="");
+    $("personalProjectType").value="bp-rp";
+    $("personalSaveProject").textContent="Lưu hồ sơ";
+    $("personalCancelEdit").hidden=true;
+  };
+  const safeText = (tag, text, className) => { const el=document.createElement(tag); el.textContent=text; if(className)el.className=className; return el; };
+  const render = () => {
+    const list=$("personalProjectList");
+    list.replaceChildren();
+    $("personalProjectEmpty").hidden=data.profiles.length>0;
+    data.profiles.forEach(profile=>{
+      const card=document.createElement("div");
+      card.style.cssText="border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--panel2);display:grid;gap:8px;min-width:0";
+      const title=safeText("strong",profile.name);
+      title.style.cssText="overflow-wrap:anywhere;font-size:13px";
+      const details=[profile.versions||"Chưa đặt phiên bản",profile.type||"bp-rp",profile.api||""].filter(Boolean).join(" · ");
+      const detail=safeText("div",details);
+      detail.style.cssText="color:var(--dim);font-size:11px;overflow-wrap:anywhere";
+      const actions=document.createElement("div");
+      actions.className="row";
+      const button=(label,handler,primary=false)=>{const b=safeText("button",label);b.type="button";if(primary)b.className="primary";b.addEventListener("click",handler);actions.appendChild(b);};
+      button("Sửa",()=>edit(profile.id));
+      button("Áp dụng",()=>applyProfile(profile),true);
+      button("Xóa",()=>removeProfile(profile.id));
+      card.append(title,detail,actions);
+      if(profile.notes) card.appendChild(safeText("div",profile.notes));
+      list.appendChild(card);
+    });
+    $("personalConfirmApply").checked=data.preferences.confirmApply!==false;
+    $("personalRememberLast").checked=!!data.preferences.rememberLast;
+    $("personalPreferredWorkflow").value=data.preferences.workflow==="suggest"?"suggest":"review";
+  };
+  const edit = id => {
+    const p=data.profiles.find(item=>item.id===id); if(!p)return;
+    editingId=id;
+    $("personalProjectName").value=p.name||"";
+    $("personalProjectVersions").value=p.versions||"";
+    $("personalProjectType").value=p.type||"bp-rp";
+    $("personalProjectApi").value=p.api||"";
+    $("personalProjectNamespace").value=p.namespace||"";
+    $("personalProjectNotes").value=p.notes||"";
+    $("personalSaveProject").textContent="Lưu thay đổi";
+    $("personalCancelEdit").hidden=false;
+    setStatus("personalProjectStatus","Đang sửa hồ sơ: "+p.name);
+    $("personalProjectName").focus();
+  };
+  const removeProfile = id => {
+    const p=data.profiles.find(item=>item.id===id); if(!p)return;
+    if(!confirm('Xóa hồ sơ "'+p.name+'"? Thao tác này không thể hoàn tác.'))return;
+    data.profiles=data.profiles.filter(item=>item.id!==id);
+    if(data.lastProfileId===id)data.lastProfileId=null;
+    if(editingId===id)clearForm();
+    write();render();setStatus("personalProjectStatus","Đã xóa hồ sơ.");
+  };
+  const applyProfile = p => {
+    if(data.preferences.confirmApply && !confirm('Áp dụng hồ sơ "'+p.name+'" vào cài đặt hiện tại? Các trường Namespace và phiên bản mục tiêu có thể thay đổi.'))return;
+    if(p.namespace && $("settingsNs"))$("settingsNs").value=p.namespace;
+    if(p.versions && $("compatTargetVersion"))$("compatTargetVersion").value=p.versions.split(",")[0].trim();
+    data.lastProfileId=p.id;
+    write();
+    setStatus("personalProjectStatus",'Đã nạp "'+p.name+'" vào các trường cài đặt hỗ trợ. Hãy kiểm tra lại trước khi chạy công cụ.');
+    if($("settingsStatus"))$("settingsStatus").textContent="Đã nạp hồ sơ dự án: "+p.name;
+  };
+  $("personalSaveProject").addEventListener("click",()=>{
+    const p=formProfile();
+    if(!p.name){setStatus("personalProjectStatus","Hãy nhập tên dự án.",true);$("personalProjectName").focus();return;}
+    if(editingId){
+      const index=data.profiles.findIndex(item=>item.id===editingId);
+      if(index>=0)data.profiles[index]={...data.profiles[index],...p,updatedAt:new Date().toISOString()};
+    } else {
+      const id=(crypto&&crypto.randomUUID)?crypto.randomUUID():"profile-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+      data.profiles.unshift({id,...p,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+      if(data.preferences.rememberLast)data.lastProfileId=id;
+    }
+    if(!write())return;
+    clearForm();render();setStatus("personalProjectStatus","Đã lưu hồ sơ trên thiết bị này.");
+  });
+  $("personalCancelEdit").addEventListener("click",()=>{clearForm();setStatus("personalProjectStatus","Đã hủy chỉnh sửa.");});
+  $("personalSavePrefs").addEventListener("click",()=>{
+    data.preferences={confirmApply:$("personalConfirmApply").checked,rememberLast:$("personalRememberLast").checked,workflow:$("personalPreferredWorkflow").value};
+    if(!data.preferences.rememberLast)data.lastProfileId=null;
+    write();setStatus("personalDataStatus","Đã lưu thói quen sử dụng.");
+  });
+  $("personalExport").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="studio-minecraft-personalization.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setStatus("personalDataStatus","Đã tạo tệp JSON để sao lưu hoặc chuyển thiết bị.");
+  });
+  $("personalImportButton").addEventListener("click",()=>$("personalImportFile").click());
+  $("personalImportFile").addEventListener("change",async event=>{
+    const file=event.target.files&&event.target.files[0];if(!file)return;
+    try{
+      const incoming=JSON.parse(await file.text());
+      if(!incoming||incoming.version!==1||!Array.isArray(incoming.profiles)||!incoming.preferences||typeof incoming.preferences!=="object")throw new Error("Định dạng không đúng.");
+      const valid=incoming.profiles.filter(p=>p&&typeof p.name==="string"&&p.name.trim()).map(p=>({...p,id:typeof p.id==="string"?p.id:"profile-"+Date.now()+"-"+Math.random().toString(36).slice(2,8)}));
+      if(!confirm("Nhập "+valid.length+" hồ sơ? Hồ sơ trùng ID sẽ được thay thế."))return;
+      const byId=new Map(data.profiles.map(p=>[p.id,p]));
+      valid.forEach(p=>byId.set(p.id,p));
+      data.profiles=Array.from(byId.values());
+      data.preferences={...data.preferences,...incoming.preferences};
+      data.lastProfileId=typeof incoming.lastProfileId==="string"?incoming.lastProfileId:null;
+      if(write()){render();setStatus("personalDataStatus","Đã nhập "+valid.length+" hồ sơ.");}
+    }catch(error){setStatus("personalDataStatus","Không nhập được JSON: "+error.message,true);}
+    finally{event.target.value="";}
+  });
+  $("personalClearAll").addEventListener("click",()=>{
+    if(!confirm("Xóa toàn bộ hồ sơ và thói quen cá nhân hóa đã lưu trên thiết bị này? Cài đặt Studio khác không bị xóa."))return;
+    data=defaults();try{localStorage.removeItem(KEY);}catch{}
+    clearForm();render();setStatus("personalDataStatus","Đã xóa dữ liệu cá nhân hóa riêng của Studio.");
+    setStatus("personalProjectStatus","Danh sách hồ sơ đã được làm trống.");
+  });
+  const typeNames={"bp-rp":"Behavior Pack + Resource Pack","bp":"Behavior Pack","rp":"Resource Pack","script":"Script API Add-on","ui":"UI / Resource Pack tùy chỉnh","tool":"Công cụ phát triển","other":"Khác"};
+  const applyLanguage = () => {
+    const lang=$("langSelect")?.value||"vi";
+    if(lang!=="en")return;
+    const text={
+      title:"Studio personalization",intro:"Save a profile for each Bedrock project and customize how Studio works. Data stays in this browser and does not sync across devices.",
+      name:"Project name",versions:"Target Bedrock versions",type:"Project type",api:"Script API (optional)",namespace:"Namespace",notes:"Notes / project rules",
+      save:"Save profile",cancel:"Cancel edit",saved:"Saved profiles",empty:"No profiles yet. Create one to save project-specific settings.",
+      habits:"Usage preferences",confirm:"Ask before applying a profile to current settings",remember:"Remember the last selected profile on this device",
+      workflow:"Preferred workflow",review:"Analyze and prepare changes for my review",suggest:"Suggestions only; do not apply automatically",
+      savePrefs:"Save preferences",export:"Export JSON data",import:"Import JSON data",clear:"Clear personalization data",
+      local:"Data is stored only in this browser. Export JSON to move it to another device."
+    };
+    const set=(id,v)=>{const el=$(id);if(el)el.textContent=v;};
+    set("personalizationCardTitle",text.title);
+    const intro=$("personalizationCard")?.querySelector("p");if(intro)intro.textContent=text.intro;
+    [["personalProjectName",text.name],["personalProjectVersions",text.versions],["personalProjectType",text.type],["personalProjectApi",text.api],["personalProjectNamespace",text.namespace],["personalProjectNotes",text.notes]].forEach(([id,v])=>{const el=document.querySelector('label[for="'+id+'"]');if(el)el.textContent=v;});
+    set("personalSaveProject",editingId?"Save changes":text.save);set("personalCancelEdit",text.cancel);
+    const h=$("personalProjectList")?.previousElementSibling;if(h)h.textContent=text.saved;
+    set("personalProjectEmpty",text.empty);
+    const hs=$("personalConfirmApply")?.closest("label");if(hs)hs.lastChild.textContent=" "+text.confirm;
+    const hr=$("personalRememberLast")?.closest("label");if(hr)hr.lastChild.textContent=" "+text.remember;
+    const wf=$("personalPreferredWorkflow")?.previousElementSibling;if(wf)wf.textContent=text.workflow;
+    const opt=$("personalPreferredWorkflow");if(opt){opt.options[0].textContent=text.review;opt.options[1].textContent=text.suggest;}
+    set("personalSavePrefs",text.savePrefs);set("personalExport",text.export);set("personalImportButton",text.import);set("personalClearAll",text.clear);set("personalDataStatus",text.local);
+  };
+  document.addEventListener("studio-language-change",applyLanguage);
+  $("langSelect")?.addEventListener("change",applyLanguage);
+  render();applyLanguage();
+})();
+</script>
+
 </body>
 </html>

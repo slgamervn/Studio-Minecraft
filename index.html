@@ -422,7 +422,8 @@ main{padding-top:14px}
         <div id="packManifestInfo" class="status">Open a pack to inspect manifest.json.</div>
       </div>
       <div class="card" style="margin-top:12px;background:var(--panel2);">
-        <h3 style="margin-top:0;">Text file editor</h3>
+        <h3 style="margin-top:0;">Edit file directly</h3>
+        <p style="font-size:12px;color:var(--dim);margin:0 0 8px;">Choose a text file and press Edit, modify its contents here, then select Save changes. Changes stay in the archive in memory until you export it.</p>
         <div class="row">
           <input id="packEditPath" type="text" placeholder="Select a file above or enter a path" aria-label="Selected file path">
           <button id="packLoadEdit">Open</button>
@@ -1678,8 +1679,12 @@ function renderPackFiles() {
       label.textContent = (/\.(png|jpe?g|webp|gif|svg)$/i.test(file.name) ? '🖼️ ' : '📄 ') + file.base;
       label.title = file.name; label.style.cssText = 'flex:1;min-width:150px;text-align:left;overflow-wrap:anywhere;white-space:normal;';
       label.onclick = () => (/\.(png|jpe?g|webp|gif|svg)$/i.test(file.name) ? previewPackImage(file.name) : loadPackTextFile(file.name));
+      const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Edit'; edit.style.cssText = 'padding:5px 8px;font-size:11px;';
+      edit.disabled = !packTextExt.test(file.name);
+      edit.title = edit.disabled ? 'Binary file: use Download' : 'Open this file in the editor below';
+      edit.onclick = () => loadPackTextFile(file.name);
       const download = document.createElement('button'); download.type = 'button'; download.textContent = 'Download'; download.style.cssText = 'padding:5px 8px;font-size:11px;';
-      download.onclick = () => downloadPackFile(file.name); row.append(label, download); container.append(row);
+      download.onclick = () => downloadPackFile(file.name); row.append(label, edit, download); container.append(row);
     }
   };
   renderNode(root, tree);

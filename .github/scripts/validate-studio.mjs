@@ -47,6 +47,18 @@ for (const [gameVersion, entry] of Object.entries(evidence)) {
   }
 }
 
+const previewEvidence = data.script_api.preview_evidence || {};
+for (const [previewVersion, entry] of Object.entries(previewEvidence)) {
+  if (!/^\d+\.\d+\.\d+-preview\.\d+$/.test(previewVersion) ||
+      entry?.status !== 'preview-evidence' ||
+      typeof entry.module !== 'string' ||
+      !/^\d+\.\d+\.\d+-beta$/.test(entry.version || '') ||
+      !/^https:\/\/learn\.microsoft\.com\//.test(entry.url || '') ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(entry.checked || '')) {
+    throw new Error('Invalid preview API evidence entry for Minecraft ' + previewVersion + '.');
+  }
+}
+
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
 const seenIds = new Set();
 for (const id of ids) {

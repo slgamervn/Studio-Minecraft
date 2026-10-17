@@ -1,4 +1,4 @@
-const CACHE = 'mc-tools-v10';
+const CACHE = 'mc-tools-v11';
 const CORE_ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 const OPTIONAL_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
@@ -43,6 +43,23 @@ self.addEventListener('fetch', event => {
         catch { return new Response('Library unavailable offline. Reconnect and reload to use this feature.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }); }
       })());
     }
+    return;
+  }
+
+  // Compatibility rules must prefer fresh network data; use cache only when offline.
+  if (url.pathname.endsWith('/data/minecraft-compat.json')) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(request, { cache: 'no-cache' });
+        if (fresh.ok) {
+          const cache = await caches.open(CACHE);
+          await cache.put(request, fresh.clone());
+        }
+        return fresh;
+      } catch {
+        return (await caches.match(request)) || Response.error();
+      }
+    })());
     return;
   }
 

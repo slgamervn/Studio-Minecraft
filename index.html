@@ -2455,8 +2455,15 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     lines.push('Manifest V2: documented stable format for behavior/resource/world-template packs; version fields use integer arrays.');
     lines.push('Manifest V3: documented as preview in the linked reference; SemVer strings and custom settings are supported by that schema, but verify the actual target game.');
     const mapped = compatibilityData.script_api.minecraft_to_server_api_partial[target];
-    lines.push(mapped && mapped !== 'unknown' ? 'Official versioning reference mapping: @minecraft/server ' + mapped + ' for Minecraft ' + target + ' (historical partial table).' :
-      'Exact Script API mapping: not documented in this bundled table for Minecraft ' + (target || '(unset)') + '. This is unknown, not unsupported; do not infer a version.');
+    const releaseEvidence = (compatibilityData.script_api.release_note_evidence || {})[target];
+    if (mapped && mapped !== 'unknown') {
+      lines.push('Evidence status: EXACT DOCUMENTED MAPPING — Microsoft versioning reference lists @minecraft/server ' + mapped + ' for Minecraft ' + target + '.');
+    } else if (releaseEvidence) {
+      lines.push('Evidence status: RELEASE-NOTE EVIDENCE — Microsoft release notes for Minecraft ' + target + ' explicitly state ' + releaseEvidence.module + ' ' + releaseEvidence.version + '. This is not promoted to an exact mapping from the separate versioning table.');
+      lines.push('Release-note source: ' + releaseEvidence.url);
+    } else {
+      lines.push('Evidence status: UNKNOWN — no exact mapping or target-specific release-note evidence is bundled for Minecraft ' + (target || '(unset)') + '. Unknown does not mean unsupported; do not infer a version.');
+    }
     const latestApi = compatibilityData.script_api.latest_documented_stable;
     if (latestApi) lines.push('Latest documented stable API module: ' + latestApi.module + ' ' + latestApi.version + ' (' + latestApi.checked + '). This is not an exact mapping to your target game version.');
     lines.push('JSON format_version values belong to each file schema and must not be automatically equated with the game version.');
@@ -2559,11 +2566,14 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     if (!compatibilityData) return;
     const target = (byId('compatTargetVersion')?.value || '').trim();
     const api = compatibilityData.script_api.minecraft_to_server_api_partial[target];
+    const releaseEvidence = (compatibilityData.script_api.release_note_evidence || {})[target];
     const latestApi = compatibilityData.script_api.latest_documented_stable;
     const apiNote = byId('apiCompatNote');
     if (apiNote) apiNote.textContent = api && api !== 'unknown'
-      ? 'Microsoft reference mapping: Minecraft ' + target + ' → @minecraft/server ' + api + ' (historical partial table). Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '. Confirm target-build support before using it.'
-      : 'No exact official mapping is bundled for Minecraft ' + (target || '(unset)') + '. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '; this is not an exact target-version mapping. Unknown does not mean unsupported.';
+      ? 'Evidence: EXACT DOCUMENTED MAPPING — Minecraft ' + target + ' → @minecraft/server ' + api + ' in Microsoft’s versioning reference. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '.'
+      : releaseEvidence
+        ? 'Evidence: RELEASE-NOTE EVIDENCE — Microsoft release notes state ' + releaseEvidence.module + ' ' + releaseEvidence.version + ' ships with Minecraft ' + target + '. This is not an exact mapping-table entry. Source: ' + releaseEvidence.url
+        : 'Evidence: UNKNOWN — no exact mapping or target-specific release-note evidence is bundled for Minecraft ' + (target || '(unset)') + '. Latest documented stable module: ' + (latestApi ? latestApi.version : 'see Microsoft Learn') + '. Unknown does not mean unsupported.';
     const templateNote = byId('templateCompatNote');
     if (templateNote) templateNote.textContent = 'Target Minecraft: ' + (target || '(unset)') + '. Template format_version is a separate file-schema version. The selected template value is a starter example, not a guarantee of latest schema or compatibility.';
   }
@@ -2584,9 +2594,12 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     renderReport();
     renderToolCompatibilityNotes();
     const apiMapping = compatibilityData.script_api.minecraft_to_server_api_partial[target];
+    const releaseEvidence = (compatibilityData.script_api.release_note_evidence || {})[target];
     status(apiMapping && apiMapping !== 'unknown'
-      ? 'Compatibility report refreshed for Minecraft ' + target + '; documented API mapping: @minecraft/server ' + apiMapping + '.'
-      : 'Compatibility report refreshed for Minecraft ' + target + '. Exact Script API mapping is unknown in the bundled table; this does not mean unsupported. No API version was inferred.', false);
+      ? 'Compatibility report refreshed for Minecraft ' + target + '. Evidence: exact documented mapping @minecraft/server ' + apiMapping + '.'
+      : releaseEvidence
+        ? 'Compatibility report refreshed for Minecraft ' + target + '. Evidence: release notes record ' + releaseEvidence.module + ' ' + releaseEvidence.version + '; this is not an exact mapping-table entry.'
+        : 'Compatibility report refreshed for Minecraft ' + target + '. Evidence status: unknown; this does not mean unsupported and no API version was inferred.', false);
   });
   byId('compatRefreshBtn')?.addEventListener('click', refreshOnline);
   async function ensureCompatibilityData() {

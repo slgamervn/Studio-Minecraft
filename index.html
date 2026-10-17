@@ -2208,7 +2208,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
       let data={};try{data=await res.json();}catch(_){}
       pending.remove();
       if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');
-      addMessage((data.answer||'AI chưa tạo được câu trả lời.')+'\n\n— '+(data.providerLabel||data.provider||'AI')+(data.model?' · '+data.model:'')+(data.fallbackUsed?' (đã tự chuyển AI dự phòng)':''),'bot');
+      addMessage((data.answer||'AI chưa tạo được câu trả lời.')+(Array.isArray(data.sources)&&data.sources.length?'\n\nNguồn tham khảo:\n'+data.sources.join('\n'):'')+'\n\n— '+(data.providerLabel||data.provider||'AI')+(data.model?' · '+data.model:'')+(data.webUsed?' · Có đối chiếu tài liệu trực tuyến':' · Chưa lấy được tài liệu trực tuyến')+(data.fallbackUsed?' (đã tự chuyển AI dự phòng)':''),'bot');
     }catch(err){
       pending.remove();
       addMessage('AI trực tuyến hiện chưa sẵn sàng. '+(err&&err.message?err.message:'')+'\n\nBạn vẫn có thể hỏi các chủ đề có sẵn để dùng trợ lý ngoại tuyến.','bot');

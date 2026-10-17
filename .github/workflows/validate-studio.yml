@@ -17,5 +17,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Check JavaScript syntax
+        run: |
+          node --check backend/server.js
+          node --check .github/scripts/update-minecraft-compat.mjs
+          node --check .github/scripts/validate-studio.mjs
       - name: Check inline JavaScript syntax and compatibility data
         run: node .github/scripts/validate-studio.mjs

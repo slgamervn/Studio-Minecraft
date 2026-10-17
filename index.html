@@ -496,6 +496,8 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
         <input type="file" id="openBr" accept=".brarchive" style="display:none">
         <button id="addFilesBtn">➕ Add files</button>
         <input type="file" id="addFiles" multiple style="display:none">
+        <button id="addFolderBtn">📁 Add folder</button>
+        <input type="file" id="addFolder" webkitdirectory directory multiple style="display:none">
         <button id="newBrBtn">🆕 New</button>
       </div>
       <div id="brCompatNote" class="status" style="margin-top:6px;">JSON compatibility checks use shared rules when you choose Check JSON. Binary files are preserved as bytes.</div>
@@ -1506,6 +1508,11 @@ document.getElementById('addFilesBtn').onclick = () => {
   input.value = '';
   input.click();
 };
+document.getElementById('addFolderBtn').onclick = () => {
+  const input = document.getElementById('addFolder');
+  input.value = '';
+  input.click();
+};
 document.getElementById('openBr').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
@@ -1515,21 +1522,22 @@ document.getElementById('openBr').onchange = async e => {
     setStatus('brLoadStatus', brEntries.length + ' entries loaded', 'ok');
   } catch (err) { setStatus('brLoadStatus', err.message, 'err'); }
 };
-document.getElementById('addFiles').onchange = async e => {
-  const files = Array.from(e.target.files || []);
+async function addBrFiles(fileList, input) {
+  const files = Array.from(fileList || []);
   if (!files.length) return;
   for (const file of files) {
-    const content = new Uint8Array(await file.arrayBuffer());
-    const existing = brEntries.findIndex(entry => entry.name === file.webkitRelativePath || entry.name === file.name);
     const name = file.webkitRelativePath || file.name;
+    const content = new Uint8Array(await file.arrayBuffer());
     const index = brEntries.findIndex(entry => entry.name === name);
     if (index >= 0) brEntries[index] = { name, content };
     else brEntries.push({ name, content });
   }
   renderBrEntries();
   setStatus('brLoadStatus', files.length + ' file(s) added', 'ok');
-  e.target.value = '';
-};
+  if (input) input.value = '';
+}
+document.getElementById('addFiles').onchange = e => addBrFiles(e.target.files, e.target);
+document.getElementById('addFolder').onchange = e => addBrFiles(e.target.files, e.target);
 document.getElementById('newBrBtn').onclick = () => { brEntries = []; renderBrEntries(); setStatus('brLoadStatus', 'New archive', 'ok'); };
 document.getElementById('langFromJson').onclick = () => {
   try {

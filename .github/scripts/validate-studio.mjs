@@ -30,7 +30,7 @@ if (!/^\d+\.\d+\.\d+$/.test(data.script_api.latest_documented_stable.version)) {
   throw new Error('Latest documented stable Script API version must be a stable SemVer triple.');
 }
 for (const source of data.sources) {
-  if (!source.id || !(/^https:\/\/learn\.microsoft\.com\//.test(source.url || '') || /^https:\/\/github\.com\/MicrosoftDocs\/minecraft-creator\//.test(source.url || '') || /^https:\/\/wiki\.bedrock\.dev\//.test(source.url || ''))) {
+  if (!source.id || !(/^https:\/\/learn\.microsoft\.com\//.test(source.url || '') || /^https:\/\/github\.com\/MicrosoftDocs\/minecraft-creator\//.test(source.url || '') || /^https:\/\/wiki\.bedrock\.dev\//.test(source.url || '') || /^https:\/\/feedback\.minecraft\.net\//.test(source.url || ''))) {
     throw new Error('Every compatibility source must have an id and an official Microsoft Learn, Minecraft Creator, or Bedrock Wiki URL.');
   }
 }

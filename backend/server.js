@@ -242,9 +242,9 @@ const server = http.createServer(async (req, res) => {
       continue;
     }
 
-    const cleanAnswer = textAnswer.replace(/^\\s*\\/(?=\\s*(?:\\*\\*|#{1,6}))/u, "").trim();
+    const cleanAnswer = textAnswer.replace(/^\s*\/(?=\s*(?:\*\*|#{1,6}))/u, "").trim();
     const jsonTroubleshooting = /json/.test(question.toLowerCase()) && /error|invalid|fix|repair|sua|sửa|lỗi|loi|syntax|parse|không hợp lệ|khong hop le/.test(question.toLowerCase());
-    if (jsonTroubleshooting && !/(comma|trailing comma|bracket|brace|quote|quotation|json\\.parse|syntax|unexpected token|line \\d|dấu phẩy|ngoặc|dấu nháy|dau phay|ngoac|nhay|dòng|dong|ký tự|ky tu)/i.test(cleanAnswer)) {
+    if (jsonTroubleshooting && !/(comma|trailing comma|bracket|brace|quote|quotation|json\.parse|syntax|unexpected token|line \d|dấu phẩy|ngoặc|dấu nháy|dau phay|ngoac|nhay|dòng|dong|ký tự|ky tu)/i.test(cleanAnswer)) {
       failures.push(provider.label + ": answer did not provide actionable JSON troubleshooting");
       continue;
     }

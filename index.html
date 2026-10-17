@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>Bedrock Coder Studio</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -407,6 +407,20 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
   .studio-ai-form input{min-height:40px!important}
   .studio-ai-form button{min-height:40px!important}
 }
+/* Home dashboard */
+.home-hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(220px,.8fr);gap:18px;padding:clamp(20px,4vw,34px);background:radial-gradient(ellipse at 95% 0,color-mix(in srgb,var(--accent) 17%,transparent),transparent 55%),var(--panel);border-color:color-mix(in srgb,var(--accent) 22%,var(--line))}
+.home-eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.home-title{font-size:clamp(25px,4vw,39px);line-height:1.12;letter-spacing:-.055em;margin:10px 0 12px;font-weight:850}
+.home-copy{color:var(--dim);font-size:13px;line-height:1.75;max-width:580px;margin:0}
+.home-hero-side{display:grid;align-content:center;gap:9px}.home-stat{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--bg)}.home-stat strong,.home-stat span{display:block}.home-stat strong{font-size:14px}.home-stat span{font-size:11px;color:var(--dim);margin-top:3px}
+.home-section-title{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 2px 12px}.home-section-title h2{margin:0;font-size:15px}.home-section-title p{margin:3px 0 0;color:var(--dim);font-size:12px}
+.home-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.home-action{display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;min-height:140px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px;color:var(--text);white-space:normal}
+.home-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--accent) 13%,var(--panel2));color:var(--accent);font-size:19px}.home-action strong{font-size:13px}.home-action small{font-size:11px;color:var(--dim);line-height:1.55;font-weight:500}.home-action:hover{border-color:var(--accent);transform:translateY(-2px)}
+.home-lower{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.home-list{display:grid;gap:8px}.home-list-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}.home-list-item strong,.home-list-item small{display:block}.home-list-item strong{font-size:12px}.home-list-item small{font-size:11px;color:var(--dim)}.home-list-item button{min-height:32px;padding:6px 10px}
+.home-empty,.home-tip{padding:14px;border:1px dashed var(--line);border-radius:12px;color:var(--dim);font-size:12px;line-height:1.7}.home-tip{border-style:solid;background:color-mix(in srgb,var(--accent) 7%,var(--panel));border-color:color-mix(in srgb,var(--accent) 18%,var(--line))}
+@media(max-width:760px){.home-hero{grid-template-columns:1fr}.home-hero-side{grid-template-columns:repeat(2,minmax(0,1fr))}.home-actions,.home-lower{grid-template-columns:repeat(2,minmax(0,1fr))}.home-lower{grid-template-columns:1fr}}
+@media(max-width:420px){.home-actions{grid-template-columns:1fr}.home-action{min-height:0;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;column-gap:11px;padding:12px}.home-action .home-icon{grid-row:span 2}.home-action strong,.home-action small{grid-column:2}.home-hero-side{grid-template-columns:1fr 1fr}.home-title{font-size:27px}}
+@media(min-width:980px){#tab-home{max-width:1280px}.home-action{min-height:154px}}
 </style>
 </head>
 <body>
@@ -434,7 +448,8 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
 </header>
 
 <div class="tabs">
-  <button class="tab active" data-tab="tools">Tools</button>
+  <button class="tab active" data-tab="home">Trang chủ</button>
+  <button class="tab" data-tab="tools">Tools</button>
   <button class="tab" data-tab="brarchive">BrArchive</button>
   <button class="tab" data-tab="pack">Pack Explorer</button>
   <button class="tab" data-tab="manifest">Manifest</button>
@@ -444,13 +459,14 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
   <button class="tab" data-tab="settings">Settings</button>
 </div>
 <div class="mobile-more-menu" id="mobileMoreMenu" aria-label="More sections">
+<button type="button" data-mobile-tab="tools">⌘ Tools</button>
 <button type="button" data-mobile-tab="manifest">≡ Manifest</button>
 <button type="button" data-mobile-tab="validator">✓ Validator</button>
 <button type="button" data-mobile-tab="lang">文 Lang &amp; Templates</button>
 <button type="button" data-mobile-tab="settings">⚙ Settings</button>
 </div>
 <nav class="mobile-bottom-nav" aria-label="Main navigation">
-<button type="button" class="mobile-nav-item active" data-mobile-tab="tools"><span>⌘</span><small>Tools</small></button>
+<button type="button" class="mobile-nav-item active" data-mobile-tab="home"><span>⌂</span><small>Home</small></button>
 <button type="button" class="mobile-nav-item" data-mobile-tab="brarchive"><span>▤</span><small>BrArchive</small></button>
 <button type="button" class="mobile-nav-item" data-mobile-tab="pack"><span>▣</span><small>Pack Explorer</small></button>
 <button type="button" class="mobile-nav-item" data-mobile-tab="coder"><span>&lt;/&gt;</span><small>Coder</small></button>
@@ -458,6 +474,16 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
 </nav>
 
 <main>
+  <div id="tab-home"><section class="card home-hero"><div><div class="home-eyebrow">Your Bedrock workspace</div><h2 class="home-title">Xây dựng pack. Kiểm tra lỗi. Làm nhanh hơn.</h2><p class="home-copy">Một nơi để làm việc với Minecraft Bedrock — từ chỉnh JSON, quản lý BrArchive đến kiểm tra tương thích. Chọn việc cần làm, Studio sẽ đưa bạn đến đúng công cụ.</p><div class="row" style="margin-top:18px"><button type="button" class="primary" data-open-tab="pack">Mở Pack Explorer ↗</button><button type="button" data-open-tab="validator">Kiểm tra pack</button></div></div><div class="home-hero-side"><div class="home-stat"><strong>Công cụ trong một nơi</strong><span>Điều hướng nhanh giữa workspace</span></div><div class="home-stat"><strong>Local-first</strong><span>Tệp được xử lý trên thiết bị khi công cụ hỗ trợ</span></div><div class="home-stat"><strong>Bedrock đa phiên bản</strong><span>Chỉ kết luận tương thích khi có bằng chứng</span></div></div></section>
+<div class="home-section-title"><div><h2>Bắt đầu nhanh</h2><p>Đi thẳng đến công cụ bạn cần.</p></div></div><div class="home-actions">
+<button type="button" class="home-action" data-open-tab="brarchive"><span class="home-icon">▤</span><strong>BrArchive</strong><small>Mở, quản lý tệp và xuất archive.</small></button>
+<button type="button" class="home-action" data-open-tab="pack"><span class="home-icon">▣</span><strong>Pack Explorer</strong><small>Duyệt và chỉnh sửa nội dung pack.</small></button>
+<button type="button" class="home-action" data-open-tab="validator"><span class="home-icon">✓</span><strong>Validator</strong><small>Kiểm tra cấu trúc và chẩn đoán lỗi.</small></button>
+<button type="button" class="home-action" data-open-tab="manifest"><span class="home-icon">≡</span><strong>Manifest Generator</strong><small>Tạo và kiểm tra manifest của pack.</small></button>
+<button type="button" class="home-action" data-open-tab="coder"><span class="home-icon">&lt;/&gt;</span><strong>Coder Tools</strong><small>Kiểm tra code và tạo mẫu tài nguyên.</small></button>
+<button type="button" class="home-action" data-open-tab="settings"><span class="home-icon">⚙</span><strong>Hồ sơ & cài đặt</strong><small>Lưu cấu hình dự án và tùy chỉnh Studio.</small></button></div>
+<div class="home-section-title"><div><h2>Không gian của bạn</h2><p>Các khu vực bạn vừa mở sẽ xuất hiện ở đây trên thiết bị này.</p></div><button type="button" id="homeClearRecent">Xóa lịch sử</button></div>
+<div class="home-lower"><section class="card" style="margin-bottom:0"><h2>Đã dùng gần đây</h2><div class="home-list" id="homeRecentList"><div class="home-empty">Lịch sử sẽ xuất hiện sau khi bạn mở một công cụ. Chỉ lưu tên khu vực, không lưu nội dung tệp.</div></div></section><section class="card" style="margin-bottom:0"><h2>Mẹo làm việc an toàn</h2><div class="home-tip">Trước khi sửa hàng loạt, hãy giữ bản sao lưu. JSON hợp lệ chưa đồng nghĩa tài nguyên đã đúng schema theo phiên bản Bedrock.</div><div class="row" style="margin-top:12px"><button type="button" data-open-tab="settings">Thiết lập hồ sơ dự án</button><button type="button" data-open-tab="lang">Ngôn ngữ & mẫu</button></div></section></div></div>
   <div id="tab-tools">
     <div class="card">
       <h2>Unicode Escape</h2>
@@ -3412,5 +3438,18 @@ document.addEventListener("studio-language-change",apply);document.addEventListe
 })();
 </script>
 
+<script>
+(function(){
+'use strict';
+const KEY='studio-minecraft.recent-tabs.v1';
+const names={tools:'Tools',brarchive:'BrArchive',pack:'Pack Explorer',manifest:'Manifest',validator:'Validator',lang:'Lang & Templates',coder:'Coder Tools',settings:'Cài đặt'};
+const read=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a.filter(k=>typeof k==='string'&&names[k]).slice(0,5):[]}catch{return []}};
+const save=a=>{try{localStorage.setItem(KEY,JSON.stringify(a.slice(0,5)))}catch{}};const list=document.getElementById('homeRecentList');
+function render(){if(!list)return;const items=read();list.replaceChildren();if(!items.length){const e=document.createElement('div');e.className='home-empty';e.textContent='Lịch sử sẽ xuất hiện sau khi bạn mở một công cụ. Chỉ lưu tên khu vực, không lưu nội dung tệp.';list.appendChild(e);return;}items.forEach(k=>{const row=document.createElement('div');row.className='home-list-item';const info=document.createElement('div');const t=document.createElement('strong');t.textContent=names[k];const sub=document.createElement('small');sub.textContent='Khu vực đã mở gần đây';info.append(t,sub);const b=document.createElement('button');b.type='button';b.textContent='Mở lại';b.addEventListener('click',()=>open(k));row.append(info,b);list.appendChild(row)})}
+function open(k){const t=document.querySelector('.tab[data-tab="'+k+'"]');if(t)t.click()}
+document.querySelectorAll('[data-open-tab]').forEach(b=>b.addEventListener('click',()=>open(b.dataset.openTab)));
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{const k=t.dataset.tab;if(!k||k==='home')return;const a=read().filter(x=>x!==k);a.unshift(k);save(a);render()}));
+document.getElementById('homeClearRecent')?.addEventListener('click',()=>{try{localStorage.removeItem(KEY)}catch{}render()});render();})();
+</script>
 </body>
 </html>

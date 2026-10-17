@@ -103,6 +103,11 @@
       "id": "release-notes-1.26.52",
       "url": "https://feedback.minecraft.net/hc/en-us/articles/49175370527501-Minecraft-Bedrock-Edition-26-52-Hotfix-Changelog",
       "checked": "2026-10-17"
+    },
+    {
+      "id": "release-notes-1.26.50",
+      "url": "https://feedback.minecraft.net/hc/en-us/articles/48826825649933-Minecraft-Bedrock-Edition-26-50-Changelog-Wilderness-Bound",
+      "checked": "2026-10-17"
     }
   ],
   "manifest": {
@@ -275,6 +280,15 @@
         "source": "release-notes-1.26.20",
         "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.20?view=minecraft-bedrock-stable",
         "checked": "2026-10-17"
+      },
+      "1.26.50": {
+        "module": "@minecraft/server",
+        "version": "2.10.0",
+        "status": "release-note-evidence",
+        "meaning": "Minecraft Bedrock 1.26.50 changelog lists @minecraft/server 2.10.0 as released and 2.11.0-beta as beta. This records the stable module only; it does not imply every add-on is compatible.",
+        "source": "release-notes-1.26.50",
+        "url": "https://feedback.minecraft.net/hc/en-us/articles/48826825649933-Minecraft-Bedrock-Edition-26-50-Changelog-Wilderness-Bound",
+        "checked": "2026-10-17"
       }
     },
     "preview_evidence": {
@@ -337,6 +351,17 @@
         "Players in Spectator Mode are no longer hit by projectiles; cushions in unloaded chunks no longer disappear after reload.",
         "Fixes an add-on achievement issue affecting older Marketplace worlds at and after version 26.50.",
         "No @minecraft/server version mapping is inferred because this changelog does not state one."
+      ]
+    },
+    {
+      "version": "1.26.50",
+      "date": "2026-09-15",
+      "source": "release-notes-1.26.50",
+      "changes": [
+        "Main Wilderness Bound update with new world features and technical changes.",
+        "Released @minecraft/server 2.10.0; @minecraft/server 2.11.0-beta is listed as beta.",
+        "Entity JSON schemas become stricter for affected components and AI goals using format_version 1.26.50 and later.",
+        "Several entity, block, projectile, UI, and stability behaviors changed; validate add-ons against the target format_version."
       ]
     }
   ],

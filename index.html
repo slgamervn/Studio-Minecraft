@@ -1792,7 +1792,7 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorNoJson', 'No JSON files found in archive.') });
   if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: validatorT('validatorNoManifest', 'manifest.json not found.') });
   if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorMultiManifest', 'Multiple manifest.json files found; check add-on structure.') });
-  const normalizePath = value => String(value || '').replace(/\\\\/g, '/').replace(/^\\/+/, '').replace(/\\/+/g, '/').replace(/\\.\\//g, '').toLowerCase();
+  const normalizePath = value => String(value || '').replace(/\\/g, '/').replace(/^\\/+/, '').replace(/\\/+/g, '/').replace(/\\.\\//g, '').toLowerCase();
   const normalizedFiles = new Set(files.map(normalizePath));
   const imageFiles = new Set(files.filter(n => /\\.(png|tga|jpg|jpeg|webp)$/i.test(n)).map(n => normalizePath(n).replace(/\\.(png|tga|jpg|jpeg|webp)$/i, '')));
   const jsonObjects = new Map();
@@ -1806,7 +1806,7 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   };
   const existsPath = candidates => candidates.some(candidate => normalizedFiles.has(normalizePath(candidate)));
   const resolveRelative = (from, ref, extensions = []) => {
-    const value = String(ref || '').replace(/\\\\/g, '/').replace(/^\\/+/, '');
+    const value = String(ref || '').replace(/\\/g, '/').replace(/^\\/+/, '');
     const base = from.includes('/') ? from.slice(0, from.lastIndexOf('/') + 1) : '';
     const stack = [];
     for (const part of (base + value).split('/')) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); }
@@ -1834,7 +1834,7 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     if (obj.texture_data && typeof obj.texture_data === 'object') Object.keys(obj.texture_data).forEach(k => textureAliases.add(k.toLowerCase()));
   }
   const addTextureRef = (path, value, key) => {
-    const val = String(value || '').replace(/\\\\/g, '/').replace(/^\\/+/, '');
+    const val = String(value || '').replace(/\\/g, '/').replace(/^\\/+/, '');
     if (!val || val.includes('://') || /^(minecraft:|geometry\\.|controller\\.|animation\\.|query\\.|variable\\.|temp\\.)/i.test(val)) return;
     if (/^textures\\//i.test(val)) {
       const stripped = val.replace(/\\.(png|tga|jpg|jpeg|webp)$/i, '');

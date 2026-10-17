@@ -4,6 +4,21 @@ A lightweight, browser-based toolkit for creating, inspecting, and editing Minec
 
 **[Open Studio](https://slgamervn.github.io/Studio-Minecraft/)** · **[Source Code](https://github.com/slgamervn/Studio-Minecraft)**
 
+## Tool coverage and current limits
+
+| Tool | Main checks / behavior |
+|---|---|
+| Unicode Escape | Encode/decode Unicode escape sequences |
+| UUID Generator | Generate identifiers for pack manifests |
+| BrArchive | Open/create supported archive structures; format support follows the referenced community format |
+| Pack Explorer | Inspect and edit pack files, structure, manifest, and JSON |
+| Add-on Validator | Static manifest and compatibility checks; not an in-game test |
+| Manifest Generator | Generate V2/V3 manifest shapes; verify against the target Bedrock version |
+| Lang Editor | Convert and edit .lang text and JSON representations |
+| Pack Skeleton | Generate starter pack layouts |
+| Script API Helper | Show API references and snippets; API availability depends on the target version |
+| Compatibility panel | Show documented release notes, source links, and known/unknown version mappings |
+
 ## Bedrock Wiki-informed validation
 
 The compatibility panel links to the Bedrock Wiki guides used to inform the editor's checks and workflow notes. Current coverage includes:

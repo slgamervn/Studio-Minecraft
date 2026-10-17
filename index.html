@@ -2277,6 +2277,10 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     const latestApi = compatibilityData.script_api.latest_documented_stable;
     if (latestApi) lines.push('Latest documented stable API module: ' + latestApi.module + ' ' + latestApi.version + ' (' + latestApi.checked + '). This is not an exact mapping to your target game version.');
     lines.push('JSON format_version values belong to each file schema and must not be automatically equated with the game version.');
+    (compatibilityData.release_notes || []).forEach(release => {
+      lines.push('Official Creator changes for ' + release.version + ' (' + release.date + '):');
+      (release.changes || []).forEach(change => lines.push('  • ' + change));
+    });
     lines.push('Scope: static rules and schema checks only. This cannot launch Minecraft or prove that a pack works in-game.');
     host.replaceChildren();
     lines.forEach(line => { const div=document.createElement('div'); div.textContent='• '+line; host.append(div); });

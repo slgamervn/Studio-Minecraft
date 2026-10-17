@@ -2529,7 +2529,8 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     translateStatic(lang);
     const get=k=>dict[k]&&dict[k][ix];
     document.documentElement.lang=lang;
-    try{localStorage.setItem('studio-language',lang)}catch(_){}
+    try{localStorage.setItem('studio-language',lang);localStorage.setItem('bedrock_studio_language_v1',lang)}catch(_){}
+    document.dispatchEvent(new Event('studio-language-change'));
     document.querySelectorAll('.tab').forEach(el=>{const k=el.dataset.tab;const v=get(k);if(v)el.textContent=v;});
     document.querySelectorAll('.mobile-nav-item[data-mobile-tab]').forEach(el=>{const small=el.querySelector('small');if(small){const v=get(el.dataset.mobileTab);if(v)small.textContent=v;}});
     document.querySelectorAll('.mobile-more-menu [data-mobile-tab]').forEach(el=>{const v=get(el.dataset.mobileTab);if(v){const icon=el.textContent.match(/^\s*[^A-Za-z\u00C0-\u024F]+/)?.[0]||'';el.textContent=icon+v;}});
@@ -2564,7 +2565,15 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     headingMap.forEach(([selector,key])=>{const el=document.querySelector(selector),v=get(key);if(el&&v)el.textContent=v;});
     const theme=document.getElementById('themeBtn');if(theme)theme.title=lang==='vi'?'Đổi giao diện sáng/tối':lang==='zh'?'切换浅色/深色主题':lang==='es'?'Cambiar tema claro/oscuro':lang==='id'?'Ganti tema terang/gelap':'Toggle light/dark theme';
   }
-  try{const saved=localStorage.getItem('studio-language');if(saved&&locales.includes(saved))select.value=saved;}catch(_){}
+  let savedLanguage='';
+  try{savedLanguage=localStorage.getItem('studio-language')||localStorage.getItem('bedrock_studio_language_v1')||'';}catch(_){}
+  if(savedLanguage&&locales.includes(savedLanguage)){select.value=savedLanguage;}
+  else{
+    const candidates=Array.isArray(navigator.languages)&&navigator.languages.length?navigator.languages:[navigator.language||'en'];
+    let detected='en';
+    for(const candidate of candidates){const code=String(candidate).toLowerCase().split(/[-_]/)[0];if(locales.includes(code)){detected=code;break;}}
+    select.value=detected;
+  }
   select.addEventListener('change',apply);
   apply();
   window.StudioLocale={get language(){return select.value;},t:key=>{const i=locales.indexOf(select.value);return dict[key]?.[i]||key;}};

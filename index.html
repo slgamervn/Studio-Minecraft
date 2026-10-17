@@ -2648,21 +2648,6 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 <button type="button" id="studioAiFab" class="studio-ai-fab" aria-expanded="false" aria-controls="studioAiPanel">✦ Studio AI</button>
 <script>
 (function(){
-  const fontSelect=document.getElementById('fontSelect');
-  const fontKey='bedrock_studio_font_v1';
-  function applyFont(value){
-    const allowed=['device','app','mono'];
-    const font=allowed.includes(value)?value:'device';
-    document.body.dataset.font=font;
-    if(fontSelect)fontSelect.value=font;
-    try{localStorage.setItem(fontKey,font)}catch(_){}
-  }
-  let savedFont='device';
-  try{savedFont=localStorage.getItem(fontKey)||'device'}catch(_){}
-  applyFont(savedFont);
-  fontSelect?.addEventListener('change',()=>applyFont(fontSelect.value));
-})();
-(function(){
   const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput'),backendInput=document.getElementById('studioAiBackendUrl'),backendStatus=document.getElementById('studioAiBackendStatus'),saveBackend=document.getElementById('studioAiSaveBackend'),testBackend=document.getElementById('studioAiTestBackend');
   if(!panel||!fab||!messages||!form||!input)return;
   const aiUi = {

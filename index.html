@@ -2356,9 +2356,97 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     ['#tab-coder .card:nth-child(1) h2','packSkeleton'],['#tab-coder .card:nth-child(3) h2','scriptHelper'],['#tab-coder .card:nth-child(4) h2','snippets'],
     ['#compatibilityCard h2','compatibility'],['#tab-settings .card:last-child h2','supportedFiles']
   ];
+  const phrase={
+    'Unicode Escape':['Mã Unicode Escape','Unicode Escape','Unicode 转义','Escape Unicode','Unicode Escape'],
+    'UUID Generator':['Tạo UUID','UUID Generator','UUID 生成器','Generador UUID','Pembuat UUID'],
+    'Tools':['Công cụ','Tools','工具','Herramientas','Alat'],
+    'Pack Explorer':['Khám phá Pack','Pack Explorer','包浏览器','Explorador de packs','Penjelajah Pack'],
+    'Validator':['Kiểm tra','Validator','检查器','Validador','Validator'],
+    'Lang & Templates':['Ngôn ngữ & Mẫu','Lang & Templates','语言与模板','Idiomas y plantillas','Bahasa & Template'],
+    'Coder Tools':['Công cụ lập trình','Coder Tools','开发工具','Herramientas de código','Alat Coder'],
+    'Settings':['Cài đặt','Settings','设置','Ajustes','Pengaturan'],
+    'Decode':['Giải mã','Decode','解码','Decodificar','Decode'],
+    'Encode':['Mã hóa','Encode','编码','Codificar','Encode'],
+    'Auto-fix JSON':['Tự sửa JSON','Auto-fix JSON','自动修复 JSON','Corregir JSON automáticamente','Perbaiki JSON otomatis'],
+    'Pretty':['Định dạng','Pretty','美化','Formatear','Rapikan'],
+    'Minify':['Nén','Minify','压缩','Minificar','Minify'],
+    'Clear':['Xóa','Clear','清除','Limpiar','Hapus'],
+    'Copy':['Sao chép','Copy','复制','Copiar','Salin'],
+    'Highlight':['Tô sáng','Highlight','高亮','Resaltar','Sorot'],
+    'Generate UUID':['Tạo UUID','Generate UUID','生成 UUID','Generar UUID','Buat UUID'],
+    'Open .brarchive':['Mở .brarchive','Open .brarchive','打开 .brarchive','Abrir .brarchive','Buka .brarchive'],
+    'Add files':['Thêm tệp','Add files','添加文件','Añadir archivos','Tambah file'],
+    'New':['Tạo mới','New','新建','Nuevo','Baru'],
+    'Pack .brarchive':['Đóng gói .brarchive','Pack .brarchive','打包 .brarchive','Empaquetar .brarchive','Pack .brarchive'],
+    'Export ZIP':['Xuất ZIP','Export ZIP','导出 ZIP','Exportar ZIP','Ekspor ZIP'],
+    'Open pack':['Mở pack','Open pack','打开包','Abrir pack','Buka pack'],
+    'Structure':['Cấu trúc','Structure','结构','Estructura','Struktur'],
+    'Image / Texture preview':['Xem trước ảnh / texture','Image / Texture preview','图像 / 纹理预览','Vista previa de imagen / textura','Pratinjau gambar / tekstur'],
+    'Manifest overview':['Tổng quan Manifest','Manifest overview','Manifest 概览','Resumen del manifiesto','Ringkasan Manifest'],
+    'Text file editor':['Trình sửa tệp văn bản','Text file editor','文本文件编辑器','Editor de archivos de texto','Editor file teks'],
+    'Generate Manifest':['Tạo Manifest','Generate Manifest','生成 Manifest','Generar manifiesto','Buat Manifest'],
+    'Manifest options':['Tùy chọn Manifest','Manifest options','Manifest 选项','Opciones del manifiesto','Opsi Manifest'],
+    'Lang Editor':['Trình sửa ngôn ngữ','Lang Editor','语言编辑器','Editor de idiomas','Editor Bahasa'],
+    'Quick Templates':['Mẫu nhanh','Quick Templates','快速模板','Plantillas rápidas','Template Cepat'],
+    'Pack Skeleton':['Khung Pack','Pack Skeleton','包骨架','Estructura del pack','Kerangka Pack'],
+    'Script API Helper':['Trợ lý Script API','Script API Helper','Script API 助手','Ayudante de Script API','Bantuan Script API'],
+    'Snippets':['Đoạn mã mẫu','Snippets','代码片段','Fragmentos de código','Snippet'],
+    'Minecraft Compatibility Data':['Dữ liệu tương thích Minecraft','Minecraft Compatibility Data','Minecraft 兼容性数据','Datos de compatibilidad de Minecraft','Data Kompatibilitas Minecraft'],
+    'Supported Files':['Định dạng tệp hỗ trợ','Supported Files','支持的文件','Archivos compatibles','File yang Didukung'],
+    'Behavior Pack':['Behavior Pack','Behavior Pack','行为包','Paquete de comportamiento','Behavior Pack'],
+    'Resource Pack':['Resource Pack','Resource Pack','资源包','Paquete de recursos','Resource Pack'],
+    'Script Pack':['Gói Script','Script Pack','脚本包','Paquete de scripts','Script Pack'],
+    'Skin Pack':['Gói Skin','Skin Pack','皮肤包','Paquete de skins','Skin Pack'],
+    'Generate':['Tạo','Generate','生成','Generar','Buat'],
+    'Choose .mcpack / .mcaddon / .zip':['Chọn .mcpack / .mcaddon / .zip','Choose .mcpack / .mcaddon / .zip','选择 .mcpack / .mcaddon / .zip','Elegir .mcpack / .mcaddon / .zip','Pilih .mcpack / .mcaddon / .zip'],
+    'Validate pack':['Kiểm tra pack','Validate pack','检查附加包','Validar pack','Periksa pack'],
+    'Validate manifest':['Kiểm tra manifest','Validate manifest','检查 manifest','Validar manifest','Periksa manifest'],
+    'Clear results':['Xóa kết quả','Clear results','清除结果','Borrar resultados','Hapus hasil'],
+    'Validation results':['Kết quả kiểm tra','Validation results','检查结果','Resultados de validación','Hasil pemeriksaan'],
+    'Format JSON':['Định dạng JSON','Format JSON','格式化 JSON','Formatear JSON','Format JSON'],
+    'Check syntax':['Kiểm tra cú pháp','Check syntax','检查语法','Comprobar sintaxis','Periksa sintaks'],
+    'Save changes':['Lưu thay đổi','Save changes','保存更改','Guardar cambios','Simpan perubahan'],
+    'Rename path':['Đổi tên đường dẫn','Rename path','重命名路径','Renombrar ruta','Ubah nama path'],
+    'Delete file':['Xóa tệp','Delete file','删除文件','Eliminar archivo','Hapus file'],
+    'Download backup':['Tải bản sao lưu','Download backup','下载备份','Descargar copia de seguridad','Unduh cadangan'],
+    'Undo edit':['Hoàn tác','Undo edit','撤销编辑','Deshacer edición','Urungkan edit'],
+    'Redo edit':['Làm lại','Redo edit','重做','Rehacer edición','Ulangi edit'],
+    'Pack name':['Tên pack','Pack name','包名称','Nombre del pack','Nama pack'],
+    'Description':['Mô tả','Description','描述','Descripción','Deskripsi'],
+    'Author':['Tác giả','Author','作者','Autor','Penulis'],
+    'Accent:':['Màu nhấn:','Accent:','强调色：','Color de acento:','Warna aksen:'],
+    'Namespace:':['Namespace:','Namespace:','命名空间：','Espacio de nombres:','Namespace:'],
+    'Target Bedrock version':['Phiên bản Bedrock mục tiêu','Target Bedrock version','目标 Bedrock 版本','Versión objetivo de Bedrock','Versi Bedrock target'],
+    'Check compatibility':['Kiểm tra tương thích','Check compatibility','检查兼容性','Comprobar compatibilidad','Periksa kompatibilitas'],
+    'Update data':['Cập nhật dữ liệu','Update data','更新数据','Actualizar datos','Perbarui data'],
+    'Use snippet':['Dùng đoạn mã','Use snippet','使用代码片段','Usar fragmento','Gunakan snippet'],
+    'Check pasted script':['Kiểm tra script đã dán','Check pasted script','检查粘贴的脚本','Comprobar el script pegado','Periksa script yang ditempel'],
+    'Show':['Hiển thị','Show','显示','Mostrar','Tampilkan'],
+    'Reset':['Đặt lại','Reset','重置','Restablecer','Atur ulang'],
+    'More':['Thêm','More','更多','Más','Lainnya'],
+    'WORKSPACE':['KHÔNG GIAN LÀM VIỆC','WORKSPACE','工作区','ESPACIO DE TRABAJO','RUANG KERJA'],
+    'Trên điện thoại':['Trên điện thoại','On mobile','在手机上','En móvil','Di ponsel']
+  };
+  const originalNodes=new WeakMap();
+  function translateStatic(lang){
+    const ix=locales.indexOf(lang);
+    const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    let node;
+    while((node=walker.nextNode())){
+      if(!originalNodes.has(node))originalNodes.set(node,node.nodeValue);
+      const original=originalNodes.get(node);
+      const trimmed=original.trim();
+      const translated=phrase[trimmed];
+      if(!translated)continue;
+      const lead=original.match(/^\\s*/)?.[0]||'';
+      const tail=original.match(/\\s*$/)?.[0]||'';
+      node.nodeValue=lead+translated[ix]+tail;
+    }
+  }
   function apply(){
     const lang=locales.includes(select.value)?select.value:'vi';
     const ix=locales.indexOf(lang);
+    translateStatic(lang);
     const get=k=>dict[k]&&dict[k][ix];
     document.documentElement.lang=lang;
     try{localStorage.setItem('studio-language',lang)}catch(_){}

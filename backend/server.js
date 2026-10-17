@@ -18,31 +18,31 @@ const PROVIDERS = {
   gemini: {
     label: "Google Gemini",
     key: () => process.env.GEMINI_API_KEY,
-    model: () => process.env.GEMINI_MODEL || "gemini-2.5-flash",
+    model: () => process.env.GEMINI_MODEL || "gemini-3.6-flash",
     url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
   },
   groq: {
     label: "Groq",
     key: () => process.env.GROQ_API_KEY,
-    model: () => process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    model: () => process.env.GROQ_MODEL || "openai/gpt-oss-120b",
     url: "https://api.groq.com/openai/v1/chat/completions"
   },
   openrouter: {
     label: "OpenRouter",
     key: () => process.env.OPENROUTER_API_KEY,
-    model: () => process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini",
+    model: () => process.env.OPENROUTER_MODEL || "deepseek/deepseek-v4.1-flash",
     url: "https://openrouter.ai/api/v1/chat/completions"
   },
   together: {
     label: "Together AI",
     key: () => process.env.TOGETHER_API_KEY,
-    model: () => process.env.TOGETHER_MODEL || "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    model: () => process.env.TOGETHER_MODEL || "Qwen/Qwen3.8-27B",
     url: "https://api.together.xyz/v1/chat/completions"
   },
   mistral: {
     label: "Mistral AI",
     key: () => process.env.MISTRAL_API_KEY,
-    model: () => process.env.MISTRAL_MODEL || "mistral-small-latest",
+    model: () => process.env.MISTRAL_MODEL || "mistral-small-2603",
     url: "https://api.mistral.ai/v1/chat/completions"
   }
 };

@@ -20,6 +20,7 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check backend/server.js
+          node --check sw.js
           node --check .github/scripts/update-minecraft-compat.mjs
           node --check .github/scripts/validate-studio.mjs
       - name: Check inline JavaScript syntax and compatibility data

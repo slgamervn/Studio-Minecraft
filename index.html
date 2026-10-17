@@ -2355,8 +2355,10 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 (function () {
   'use strict';
   const DATA_URL = './data/minecraft-compat.json';
+  const REMOTE_DATA_URL = 'https://raw.githubusercontent.com/slgamervn/Studio-Minecraft/main/data/minecraft-compat.json';
   const CACHE_KEY = 'studio-minecraft-compat-v1';
   let compatibilityData = null;
+  let loadingPromise = null;
   const byId = id => document.getElementById(id);
   function status(message, isError) {
     const el = byId('compatDataStatus');
@@ -2367,8 +2369,18 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   function safeParse(raw) {
     try {
       const value = JSON.parse(raw);
-      return value && value.schema_version === 1 && value.manifest && value.sources ? value : null;
+      return value && value.schema_version === 1 && value.manifest &&
+        value.manifest.capabilities && value.script_api &&
+        value.script_api.minecraft_to_server_api_partial &&
+        value.sources && Array.isArray(value.sources) ? value : null;
     } catch (_) { return null; }
+  }
+  async function fetchCompatibilityData(url, cache) {
+    const response = await fetch(url, { cache });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = safeParse(await response.text());
+    if (!data) throw new Error('Compatibility data schema is invalid');
+    return data;
   }
   function setData(data, label) {
     compatibilityData = data;
@@ -2381,27 +2393,34 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   }
   async function loadBundled() {
     try {
-      const response = await fetch(DATA_URL, { cache: 'no-cache' });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const data = safeParse(await response.text());
-      if (!data) throw new Error('Invalid compatibility data schema');
+      const data = await fetchCompatibilityData(DATA_URL, 'no-cache');
       setData(data, 'bundled');
       return true;
     } catch (_) { return false; }
   }
   async function refreshOnline() {
-    status('Checking for updated compatibility data…', false);
-    try {
-      const url = DATA_URL + '?v=' + Date.now();
-      const response = await fetch(url, { cache: 'no-store' });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const data = safeParse(await response.text());
-      if (!data) throw new Error('Downloaded data failed schema validation');
-      setData(data, 'online checked');
-    } catch (error) {
-      if (compatibilityData) status('Using ' + compatibilityData.data_version + ' · online update unavailable (' + error.message + ')', false);
-      else status('Could not load bundled data or cache. Check connection and reopen the page.', true);
+    status('Loading compatibility rules…', false);
+    const urls = [
+      DATA_URL + '?v=' + Date.now(),
+      REMOTE_DATA_URL + '?v=' + Date.now()
+    ];
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        const data = await fetchCompatibilityData(url, 'no-store');
+        setData(data, url.startsWith(REMOTE_DATA_URL) ? 'online fallback' : 'online checked');
+        return true;
+      } catch (error) { lastError = error; }
     }
+    if (compatibilityData) {
+      status('Using cached compatibility data ' + (compatibilityData.data_version || '') + '; update unavailable.', false);
+      renderReport();
+      return false;
+    }
+    status('Compatibility rules could not be loaded. Open the hosted Studio page or connect to the internet, then retry Update data.', true);
+    const report = byId('compatReport');
+    if (report) report.textContent = 'Compatibility check is unavailable because its rules data has not loaded. Use “Update data” to retry.';
+    return false;
   }
   function renderSources() {
     const host = byId('compatSources');
@@ -2549,14 +2568,40 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     if (templateNote) templateNote.textContent = 'Target Minecraft: ' + (target || '(unset)') + '. Template format_version is a separate file-schema version. The selected template value is a starter example, not a guarantee of latest schema or compatibility.';
   }
   byId('compatTargetVersion')?.addEventListener('input', () => { renderReport(); renderToolCompatibilityNotes(); });
-  byId('compatCheckBtn')?.addEventListener('click', () => { renderReport(); renderToolCompatibilityNotes(); });
+  byId('compatCheckBtn')?.addEventListener('click', async () => {
+    const target = (byId('compatTargetVersion')?.value || '').trim();
+    if (!/^\\d+\\.\\d+\\.\\d+$/.test(target)) {
+      status('Enter a Bedrock version in x.y.z format, for example 1.26.0.', true);
+      const report = byId('compatReport');
+      if (report) report.textContent = 'Invalid target version. Use three numeric parts, such as 1.26.0.';
+      return;
+    }
+    if (!compatibilityData) {
+      status('Compatibility rules are not loaded; attempting to load them…', false);
+      await ensureCompatibilityData();
+    }
+    if (!compatibilityData) return;
+    renderReport();
+    renderToolCompatibilityNotes();
+    status('Compatibility report refreshed for Minecraft ' + target + '.', false);
+  });
   byId('compatRefreshBtn')?.addEventListener('click', refreshOnline);
+  async function ensureCompatibilityData() {
+    if (compatibilityData) return true;
+    if (loadingPromise) return loadingPromise;
+    loadingPromise = (async () => {
+      if (await loadBundled()) return true;
+      await refreshOnline();
+      return Boolean(compatibilityData);
+    })();
+    try { return await loadingPromise; }
+    finally { loadingPromise = null; }
+  }
   async function init() {
     let cached = null;
     try { cached = safeParse(localStorage.getItem(CACHE_KEY) || ''); } catch (_) {}
     if (cached) setData(cached, 'cached offline fallback');
-    const ok = await loadBundled();
-    if (!ok && !cached) await refreshOnline();
+    await ensureCompatibilityData();
   }
   init();
 })();

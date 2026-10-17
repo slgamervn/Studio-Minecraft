@@ -954,10 +954,10 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
   .mcpack / .mcaddon are ZIP. Manifest follows Microsoft Learn.
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: jszip.min.js. Connect to the internet and reload.';"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: prism.min.js. Connect to the internet and reload.';"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: prism-json.min.js. Connect to the internet and reload.';"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" onerror="document.getElementById('loadStatus').textContent='Library failed to load: prism-javascript.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="var el=document.getElementById('loadStatus');if(el)el.textContent='Library failed to load: jszip.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" onerror="var el=document.getElementById('loadStatus');if(el)el.textContent='Library failed to load: prism.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js" onerror="var el=document.getElementById('loadStatus');if(el)el.textContent='Library failed to load: prism-json.min.js. Connect to the internet and reload.';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" onerror="var el=document.getElementById('loadStatus');if(el)el.textContent='Library failed to load: prism-javascript.min.js. Connect to the internet and reload.';"></script>
 <script>
 try {
 // Tab switching
@@ -977,7 +977,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     tab.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest', inline: 'nearest' });
   };
 });
-document.getElementById('loadStatus').textContent = 'Sẵn sàng';
+if (document.getElementById('loadStatus')) document.getElementById('loadStatus').textContent = 'Sẵn sàng';
 
 // Theme
 // Safe storage (localStorage may be blocked on file://)
@@ -1081,7 +1081,7 @@ initializeLanguage();
 function applyLang() {
   const lang = document.getElementById('langSelect').value || 'vi';
   const t = I18N[lang] || I18N.vi;
-  document.getElementById('loadStatus').textContent = t.ready;
+  if (document.getElementById('loadStatus')) document.getElementById('loadStatus').textContent = t.ready;
   const validatorText = {
     validatorTitle: 'validatorTitle', validatorDesc: 'validatorDesc', validatorOpenBtn: 'validatorOpen',
     validatorRunBtn: 'validatorRun', validatorFileStatus: 'validatorNoPack', validatorOrManifest: 'validatorOrManifest',
@@ -1141,7 +1141,7 @@ function applyTheme() {
     document.documentElement.style.setProperty('--accent', '#C4673F');
     document.documentElement.style.setProperty('--accent-dim', '#F2DFD1');
     document.documentElement.style.setProperty('--warn', '#C0463B');
-    document.getElementById('themeBtn').textContent = '☀️';
+    if (document.getElementById('themeBtn')) document.getElementById('themeBtn').textContent = '☀️';
   } else {
     document.documentElement.style.setProperty('--bg', '#1E1A16');
     document.documentElement.style.setProperty('--panel', '#28231E');
@@ -1152,7 +1152,7 @@ function applyTheme() {
     document.documentElement.style.setProperty('--accent', '#E08C66');
     document.documentElement.style.setProperty('--accent-dim', '#493027');
     document.documentElement.style.setProperty('--warn', '#E0675C');
-    document.getElementById('themeBtn').textContent = '🌙';
+    if (document.getElementById('themeBtn')) document.getElementById('themeBtn').textContent = '🌙';
   }
   storage.set('theme', prefs.theme);
 }
@@ -1642,7 +1642,9 @@ function renderJsonErrorDiagnostic(panel, text, error, location) {
 
 function renderBrEntries() {
   const list = document.getElementById('entryList');
-  document.getElementById('entryCount').textContent = brEntries.length;
+  if (!list) return;
+  const count = document.getElementById('entryCount');
+  if (count) count.textContent = brEntries.length;
   if (!brEntries.length) {
     list.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;">No files</div>';
     return;
@@ -2033,8 +2035,11 @@ document.getElementById('validatorFile').onchange = async e => {
   try {
     validatorZip = await JSZip.loadAsync(file);
     validatorFileName = file.name;
-    document.getElementById('validatorFileStatus').dataset.userStatus = '1';
-    document.getElementById('validatorFileStatus').textContent = validatorT('validatorOpened', 'Opened') + ' ' + file.name + ' (' + Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir).length + ' files).';
+    const fileStatus = document.getElementById('validatorFileStatus');
+    if (fileStatus) {
+      fileStatus.dataset.userStatus = '1';
+      fileStatus.textContent = validatorT('validatorOpened', 'Opened') + ' ' + file.name + ' (' + Object.keys(validatorZip.files).filter(n => !validatorZip.files[n].dir).length + ' files).';
+    }
     setStatus('validatorFileStatus', 'Đã mở ' + file.name, 'ok');
   } catch (err) {
     validatorZip = null;
@@ -2277,9 +2282,12 @@ document.getElementById('validatorManifestBtn').onclick = () => {
 document.getElementById('validatorClearBtn').onclick = () => {
   document.getElementById('validatorManifestInput').value = '';
   document.getElementById('validatorResults').replaceChildren();
-  document.getElementById('validatorSummary').textContent = validatorT('validatorNotRun', 'Not checked yet.');
-  document.getElementById('validatorSummary').className = 'status';
-  delete document.getElementById('validatorSummary').dataset.userStatus;
+  const summary = document.getElementById('validatorSummary');
+  if (summary) {
+    summary.textContent = validatorT('validatorNotRun', 'Not checked yet.');
+    summary.className = 'status';
+    delete summary.dataset.userStatus;
+  }
 };
 
 // Pack Explorer: searchable, editable text files, safe DOM rendering.
@@ -2352,13 +2360,19 @@ async function previewPackImage(name) {
     if (packPreviewUrl) URL.revokeObjectURL(packPreviewUrl);
     packPreviewUrl = URL.createObjectURL(blob);
     const img = document.getElementById('packImagePreview');
-    img.onload = () => { document.getElementById('packImageMeta').textContent = name + ' · ' + img.naturalWidth + ' × ' + img.naturalHeight; img.classList.remove('hidden'); };
+    if (!img) return;
+    img.onload = () => {
+      const meta = document.getElementById('packImageMeta');
+      if (meta) meta.textContent = name + ' · ' + img.naturalWidth + ' × ' + img.naturalHeight;
+      img.classList.remove('hidden');
+    };
     img.onerror = () => setStatus('packImageMeta', 'This image format cannot be previewed by the browser.', 'err');
     img.src = packPreviewUrl;
   } catch (err) { setStatus('packImageMeta', 'Preview failed: ' + err.message, 'err'); }
 }
 async function renderPackManifest() {
   const out = document.getElementById('packManifestInfo');
+  if (!out) return;
   if (!packZip) { out.textContent = 'Open a pack to inspect manifest.json.'; return; }
   const paths = Object.keys(packZip.files).filter(n => !packZip.files[n].dir && n.split('/').pop().toLowerCase() === 'manifest.json');
   out.replaceChildren();
@@ -2403,8 +2417,10 @@ document.getElementById('openPack').onchange = async e => {
     document.getElementById('packExportName').value = /\.mcaddon$/i.test(f.name) ? f.name.replace(/\.mcaddon$/i, '-edited.mcaddon') : /\.mcpack$/i.test(f.name) ? f.name.replace(/\.mcpack$/i, '-edited.mcpack') : 'edited.zip';
     renderPackFiles();
     renderPackManifest();
-    document.getElementById('packImagePreview').classList.add('hidden');
-    document.getElementById('packImageMeta').textContent = 'Choose an image in the file tree.';
+    const imagePreview = document.getElementById('packImagePreview');
+    if (imagePreview) imagePreview.classList.add('hidden');
+    const imageMeta = document.getElementById('packImageMeta');
+    if (imageMeta) imageMeta.textContent = 'Choose an image in the file tree.';
     packUndoStack = []; packRedoStack = []; packLastEditorText = '';
     const count = Object.keys(packZip.files).filter(n => !packZip.files[n].dir).length;
     setStatus('packStatus2', 'Opened ' + f.name + ' · ' + count + ' files', 'ok');

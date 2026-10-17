@@ -1481,60 +1481,79 @@ const MAGIC = new Uint8Array([0x7d, 0x27, 0x25, 0xb1, 0xa0, 0x52, 0x70, 0x26]);
 let brEntries = [];
 
 function parseBrarchive(buf) {
+  if (!(buf instanceof ArrayBuffer) || buf.byteLength < 16) throw new Error('Archive quá nhỏ hoặc không hợp lệ.');
   const view = new DataView(buf);
   const u8 = new Uint8Array(buf);
-  for (let i = 0; i < 8; i++) if (u8[i] !== MAGIC[i]) throw new Error('Bad magic');
+  for (let i = 0; i < MAGIC.length; i++) if (u8[i] !== MAGIC[i]) throw new Error('Magic number không khớp: đây không phải .brarchive hợp lệ.');
   const num = view.getUint32(8, true);
   const version = view.getUint32(12, true);
-  if (version !== 1) throw new Error('Unsupported version: ' + version);
+  if (version !== 1) throw new Error('Phiên bản archive chưa hỗ trợ: ' + version);
+  const tableSize = num * 256;
+  const contentBase = 16 + tableSize;
+  if (!Number.isSafeInteger(contentBase) || contentBase > u8.length) throw new Error('Bảng entry bị cắt cụt hoặc số entry không hợp lệ.');
+  const decoder = new TextDecoder('utf-8', { fatal: true });
   const entries = [];
-  const contentBase = 16 + num * 256;
+  const names = new Set();
   for (let i = 0; i < num; i++) {
     const descOff = 16 + i * 256;
     const nameLen = u8[descOff];
-    if (nameLen > 247) throw new Error('Name too long');
-    const nameBytes = u8.slice(descOff + 1, descOff + 1 + nameLen);
-    const name = new TextDecoder().decode(nameBytes);
+    if (nameLen > 247) throw new Error('Tên file entry ' + (i + 1) + ' dài quá giới hạn.');
+    let name;
+    try { name = decoder.decode(u8.subarray(descOff + 1, descOff + 1 + nameLen)); }
+    catch (_) { throw new Error('Tên file entry ' + (i + 1) + ' không phải UTF-8 hợp lệ.'); }
+    if (!name || name.includes('\\0')) throw new Error('Tên file entry ' + (i + 1) + ' rỗng hoặc chứa ký tự null.');
+    if (names.has(name)) throw new Error('Tên entry bị trùng: ' + name);
+    names.add(name);
     const contentOffset = view.getUint32(descOff + 248, true);
     const contentLen = view.getUint32(descOff + 252, true);
-    let content = new Uint8Array(0);
-    if (contentLen > 0) {
-      const start = contentBase + contentOffset;
-      if (start + contentLen > u8.length) throw new Error('Content out of bounds');
-      content = u8.slice(start, start + contentLen);
+    const start = contentBase + contentOffset;
+    const end = start + contentLen;
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < contentBase || end > u8.length || end < start) {
+      throw new Error('Dữ liệu entry nằm ngoài archive: ' + name);
     }
-    entries.push({ name, content });
+    entries.push({ name, content: u8.slice(start, end) });
   }
   return entries;
 }
 
 function buildBrarchive(entries) {
-  const num = entries.length;
+  if (!Array.isArray(entries)) throw new Error('Danh sách entry không hợp lệ.');
+  if (entries.length > Math.floor((0xFFFFFFFF - 16) / 256)) throw new Error('Số entry vượt giới hạn định dạng.');
+  const encoder = new TextEncoder();
+  const names = new Set();
   let contentSize = 0;
-  const offsets = [];
-  entries.forEach(e => {
-    offsets.push(contentSize);
-    contentSize += e.content.length;
+  const packed = entries.map((entry, index) => {
+    if (!entry || typeof entry.name !== 'string' || !entry.name.trim()) throw new Error('Tên file entry ' + (index + 1) + ' không hợp lệ.');
+    const nameBytes = encoder.encode(entry.name);
+    if (nameBytes.length > 247) throw new Error('Tên file quá dài (>247 byte): ' + entry.name);
+    if (entry.name.includes('\\0')) throw new Error('Tên file không được chứa ký tự null.');
+    if (names.has(entry.name)) throw new Error('Tên file bị trùng: ' + entry.name);
+    names.add(entry.name);
+    const bytes = entry.content instanceof Uint8Array ? entry.content : new Uint8Array(entry.content || []);
+    if (!Number.isSafeInteger(contentSize + bytes.length) || contentSize + bytes.length > 0xFFFFFFFF) throw new Error('Tổng dữ liệu vượt giới hạn định dạng.');
+    const offset = contentSize;
+    contentSize += bytes.length;
+    return { name: entry.name, nameBytes, bytes, offset };
   });
-  const totalSize = 16 + num * 256 + contentSize;
+  const totalSize = 16 + packed.length * 256 + contentSize;
+  if (!Number.isSafeInteger(totalSize)) throw new Error('Kích thước archive không hợp lệ.');
   const buf = new ArrayBuffer(totalSize);
   const view = new DataView(buf);
   const u8 = new Uint8Array(buf);
   u8.set(MAGIC, 0);
-  view.setUint32(8, num, true);
+  view.setUint32(8, packed.length, true);
   view.setUint32(12, 1, true);
-  let contentPos = 16 + num * 256;
-  entries.forEach((e, i) => {
+  const contentBase = 16 + packed.length * 256;
+  let contentPos = contentBase;
+  packed.forEach((entry, i) => {
     const descOff = 16 + i * 256;
-    const nameBytes = new TextEncoder().encode(e.name);
-    const nameLen = Math.min(nameBytes.length, 247);
-    u8[descOff] = nameLen;
-    u8.set(nameBytes.subarray(0, nameLen), descOff + 1);
-    view.setUint32(descOff + 248, offsets[i], true);
-    view.setUint32(descOff + 252, e.content.length, true);
-    if (e.content.length) {
-      u8.set(e.content, contentPos);
-      contentPos += e.content.length;
+    u8[descOff] = entry.nameBytes.length;
+    u8.set(entry.nameBytes, descOff + 1);
+    view.setUint32(descOff + 248, entry.offset, true);
+    view.setUint32(descOff + 252, entry.bytes.length, true);
+    if (entry.bytes.length) {
+      u8.set(entry.bytes, contentPos);
+      contentPos += entry.bytes.length;
     }
   });
   return buf;
@@ -1623,9 +1642,35 @@ function renderBrEntries() {
       minify.textContent = 'Minify';
       minify.onclick = () => {
         try { area.value = JSON.stringify(JSON.parse(area.value)); }
-        catch (error) { setStatus('brLoadStatus', 'Cannot minify JSON: ' + error.message, 'err'); }
+        catch (error) { setStatus('brLoadStatus', 'Không thể minify JSON: ' + error.message, 'err'); }
       };
-      tools.append(check, format, minify);
+      const escape = document.createElement('button');
+      escape.textContent = '\\uXXXX ⇄ chữ';
+      escape.onclick = () => {
+        const value = area.value;
+        const hasEscapes = /\\\\u[0-9a-fA-F]{4}/.test(value);
+        area.value = hasEscapes
+          ? value.replace(/\\\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+          : Array.from(value).map(ch => {
+              const cp = ch.codePointAt(0);
+              if (cp <= 0x7F) return ch;
+              if (cp <= 0xFFFF) return '\\\\u' + cp.toString(16).padStart(4, '0');
+              const n = cp - 0x10000;
+              return '\\\\u' + (0xD800 + (n >> 10)).toString(16) + '\\\\u' + (0xDC00 + (n & 1023)).toString(16);
+            }).join('');
+        setStatus('brLoadStatus', hasEscapes ? 'Đã giải mã chuỗi \\uXXXX.' : 'Đã mã hóa ký tự Unicode.', 'ok');
+      };
+      const fix = document.createElement('button');
+      fix.textContent = 'Auto-fix JSON';
+      fix.onclick = () => {
+        const fixed = area.value
+          .replace(/([{,]\\s*)([A-Za-z_$][A-Za-z0-9_$]*)\\s*:/g, '$1"$2":')
+          .replace(/,\\s*([}\\]])/g, '$1');
+        area.value = fixed;
+        try { JSON.parse(fixed); setStatus('brLoadStatus', 'JSON hợp lệ sau khi tự sửa.', 'ok'); }
+        catch (error) { setStatus('brLoadStatus', 'Đã sửa lỗi phổ biến; vẫn còn lỗi JSON: ' + error.message, 'err'); }
+      };
+      tools.append(check, format, minify, escape, fix);
       card.append(tools);
     } else {
       const preview = document.createElement('pre');

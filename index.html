@@ -1240,17 +1240,6 @@ document.getElementById('minifyBtn').onclick = () => {
   } catch (e) { setStatus('uStatus', 'Invalid JSON', 'err'); }
 };
 
-// Add files to BrArchive
-// Remove early duplicate file button handlers (they get overwritten)
-document.getElementById('addFiles').onchange = async e => {
-  for (const f of e.target.files) {
-    const buf = await f.arrayBuffer();
-    brEntries.push({ name: f.name, content: new Uint8Array(buf) });
-  }
-  renderBrEntries();
-  setStatus('brLoadStatus', brEntries.length + ' entries', 'ok');
-};
-
 const apiSnippets = {
   spawn: "import { world } from '@minecraft/server';\n\nworld.afterEvents.playerSpawn.subscribe((event) => {\n  if (event.initialSpawn) event.player.sendMessage('Welcome!');\n});",
   interval: "import { system, world } from '@minecraft/server';\n\nsystem.runInterval(() => {\n  for (const player of world.getAllPlayers()) {\n    // Put lightweight periodic logic here.\n  }\n}, 20);",
@@ -1349,12 +1338,6 @@ document.getElementById('packBackupBtn').onclick = async () => {
   try { const blob = await packZip.generateAsync({ type: 'blob' }); const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = 'backup-' + (document.getElementById('packExportName').value || 'pack.zip').replace(/[^\w.-]+/g, '_'); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setStatus('exportPackStatus', 'Backup downloaded.', 'ok'); }
   catch (err) { setStatus('exportPackStatus', 'Backup failed: ' + err.message, 'err'); }
 };
-document.getElementById('exportMcpack').onclick = async () => {
-  if (!packZip) return setStatus('exportPackStatus', 'Open a pack first', 'err');
-  try { const blob = await packZip.generateAsync({ type: 'blob' }); const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = (document.getElementById('packExportName').value || 'edited.mcpack').trim(); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); setStatus('exportPackStatus', 'Exported archive successfully.', 'ok'); }
-  catch (err) { setStatus('exportPackStatus', 'Export failed: ' + err.message, 'err'); }
-};
-
 // === BrArchive v2 (correct fixed-256-byte format) ===
 // Source: https://github.com/bedrock-crustaceans/brarchive/blob/main/FORMAT.md
 const MAGIC = new Uint8Array([0x7d, 0x27, 0x25, 0xb1, 0xa0, 0x52, 0x70, 0x26]);

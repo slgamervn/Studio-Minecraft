@@ -2135,9 +2135,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   </div>
   <details style="padding:0 12px 9px;font-size:11px;color:var(--dim)">
     <summary style="cursor:pointer">Cấu hình AI trực tuyến</summary>
-    <label for="studioAiProvider" style="display:block;margin:8px 0 4px">Nhà cung cấp AI</label>
-    <select id="studioAiProvider" style="width:100%;min-width:0"><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option><option value="groq">Groq</option><option value="openrouter">OpenRouter</option><option value="together">Together AI</option><option value="mistral">Mistral AI</option></select>
-    <div style="font-size:11px;color:var(--dim);margin-top:4px">Chọn nhà cung cấp đã được cấu hình API key trên Render.</div>
+    <div style="display:block;margin:8px 0 4px;font-weight:600">Chọn AI tự động</div><div style="font-size:11px;color:var(--dim);margin-top:4px">Studio tự thử các nhà cung cấp đã cấu hình và chuyển AI khi gặp lỗi.</div>
     <label for="studioAiBackendUrl" style="display:block;margin:8px 0 4px">Backend URL (Render)</label>
     <input id="studioAiBackendUrl" type="url" inputmode="url" placeholder="https://ten-dich-vu.onrender.com" autocomplete="url" style="width:100%;min-width:0">
     <div style="display:flex;gap:6px;margin-top:7px">
@@ -2151,7 +2149,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 <button type="button" id="studioAiFab" class="studio-ai-fab" aria-expanded="false" aria-controls="studioAiPanel">✦ Studio AI</button>
 <script>
 (function(){
-  const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput'),backendInput=document.getElementById('studioAiBackendUrl'),backendStatus=document.getElementById('studioAiBackendStatus'),providerInput=document.getElementById('studioAiProvider'),saveBackend=document.getElementById('studioAiSaveBackend'),testBackend=document.getElementById('studioAiTestBackend');
+  const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput'),backendInput=document.getElementById('studioAiBackendUrl'),backendStatus=document.getElementById('studioAiBackendStatus'),saveBackend=document.getElementById('studioAiSaveBackend'),testBackend=document.getElementById('studioAiTestBackend');
   if(!panel||!fab||!messages||!form||!input)return;
   const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9@._-]+/g,' ').trim();
   const kb=[
@@ -2193,11 +2191,11 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     try{
       const backend=getBackendUrl();
       if(!backend)throw new Error('Hãy mở Cấu hình AI trực tuyến, nhập URL Render, rồi nhấn Lưu URL.');
-      const res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,provider:providerInput?providerInput.value:'openai'})});
+      const res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
       let data={};try{data=await res.json();}catch(_){}
       pending.remove();
       if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');
-      addMessage(data.answer||'AI chưa tạo được câu trả lời.','bot');
+      addMessage((data.answer||'AI chưa tạo được câu trả lời.')+'\\n\\n— '+(data.providerLabel||data.provider||'AI')+(data.model?' · '+data.model:'')+(data.fallbackUsed?' (đã tự chuyển AI dự phòng)':''),'bot');
     }catch(err){
       pending.remove();
       addMessage('AI trực tuyến hiện chưa sẵn sàng. '+(err&&err.message?err.message:'')+'\n\nBạn vẫn có thể hỏi các chủ đề có sẵn để dùng trợ lý ngoại tuyến.','bot');

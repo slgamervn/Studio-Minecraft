@@ -38,6 +38,21 @@
       "id": "latest-platform-guidance",
       "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/practices/latestplatformversion?view=minecraft-bedrock-stable",
       "checked": "2026-10-17"
+    },
+    {
+      "id": "release-notes-1.26.0",
+      "url": "https://github.com/MicrosoftDocs/minecraft-creator/blob/main/creator/Documents/Update1.26.0.md",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "release-notes-1.26.40",
+      "url": "https://github.com/MicrosoftDocs/minecraft-creator/blob/main/creator/Documents/Update1.26.40.md",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "addon-troubleshooting",
+      "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/troubleshootingaddons?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
     }
   ],
   "manifest": {
@@ -198,5 +213,29 @@
     "url": "./data/minecraft-compat.json",
     "cache_key": "studio-minecraft-compat-v1",
     "cache_policy": "Use bundled data when available; retain last valid cached data when offline. Never execute downloaded code."
-  }
+  },
+  "release_notes": [
+    {
+      "version": "1.26.40",
+      "date": "2026-08-03",
+      "source": "release-notes-1.26.40",
+      "changes": [
+        "Stricter entity JSON validation: invalid data in affected components and AI goals can prevent loading when entity format_version is 1.26.40 or later.",
+        "minecraft:multi_block trait and minecraft:instrument_sound block component moved out of experimental.",
+        "Ships @minecraft/server 2.9.0; @minecraft/server 2.10.0 and @minecraft/server-ui 2.2.0 are beta in these notes.",
+        "Duplicate feature identifiers in one behavior pack now produce a content-log error.",
+        "Pack files are compressed in archives and duplicate raw files in behavior/resource pack folders were removed."
+      ]
+    },
+    {
+      "version": "1.26.0",
+      "date": "2026-02-05",
+      "source": "release-notes-1.26.0",
+      "changes": [
+        "Minecraft adopted year-based version numbering in 2026; API and file schema version numbers remain separate systems.",
+        "Released @minecraft/server v2.5.0, including additional stable block component types and player swing events.",
+        "EntityHurtAfterEvent now fires when damage amount is zero; fixes were made to ItemStack and Entity getComponents behavior in older script versions."
+      ]
+    }
+  ]
 }

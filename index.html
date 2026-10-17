@@ -1848,6 +1848,78 @@ document.getElementById('validatorRunBtn').onclick = async () => {
       if (!declared) issues.push({ level: 'WARN', path, message: 'Imports @minecraft/server but no matching native module dependency was found in the manifests.' });
     }
   }
+  const manifestRecords = [];
+  for (const path of jsonFiles.filter(n => n.split('/').pop().toLowerCase() === 'manifest.json')) {
+    try {
+      const manifest = parseJsonWithComments(await validatorZip.file(path).async('string'));
+      manifestRecords.push({ path, manifest });
+    } catch {}
+  }
+  const knownPackUuids = new Set();
+  for (const record of manifestRecords) {
+    const m = record.manifest || {};
+    if (m.header && typeof m.header.uuid === 'string') knownPackUuids.add(m.header.uuid.toLowerCase());
+    for (const mod of Array.isArray(m.modules) ? m.modules : []) if (mod && typeof mod.uuid === 'string') knownPackUuids.add(mod.uuid.toLowerCase());
+  }
+  for (const record of manifestRecords) {
+    const deps = Array.isArray(record.manifest?.dependencies) ? record.manifest.dependencies : [];
+    for (const dep of deps) {
+      if (!dep || typeof dep.uuid !== 'string' || !VALIDATOR_UUID.test(dep.uuid)) continue;
+      if (!knownPackUuids.has(dep.uuid.toLowerCase())) issues.push({ level: 'WARN', path: record.path, message: 'Dependency UUID không khớp header/module UUID nào trong archive: ' + dep.uuid + '. Nếu đây là dependency bên ngoài, hãy xác minh nó đã được cài đặt.' });
+    }
+  }
+  const hasFile = path => normalizedFiles.has(path.replace(/\\/g, '/').replace(/^\\.\\//, '').replace(/\\/+/g, '/').toLowerCase());
+  const pathCandidates = (base, value, extensions = []) => {
+    const clean = String(value || '').replace(/\\/g, '/').replace(/^\\/+/, '');
+    const parent = base.includes('/') ? base.slice(0, base.lastIndexOf('/') + 1) : '';
+    const joined = (parent + clean).split('/');
+    const stack = [];
+    for (const part of joined) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); }
+    const result = [stack.join('/')];
+    for (const ext of extensions) result.push(stack.join('/') + ext);
+    return result;
+  };
+  for (const path of files.filter(n => /\\.(js|mjs)$/i.test(n))) {
+    let source = '';
+    try { source = await validatorZip.file(path).async('string'); } catch { continue; }
+    for (const match of source.matchAll(/(?:from\\s*|import\\s*\\()(['"])(\\.{1,2}\\/[^'"]+)\\1/g)) {
+      const specifier = match[2];
+      const candidates = pathCandidates(path, specifier, ['.js', '.mjs', '.json', '/index.js']);
+      if (!candidates.some(hasFile)) issues.push({ level: 'ERROR', path, message: 'Không tìm thấy tệp được import tương đối: ' + specifier + ' (đã thử: ' + candidates.join(', ') + ')' });
+    }
+  }
+  const rootFiles = new Set(files.map(n => n.replace(/\\/g, '/').toLowerCase()));
+  const topLevel = new Set(files.map(n => n.replace(/\\/g, '/').split('/')[0].toLowerCase()));
+  const hasBP = topLevel.has('behavior_packs') || files.some(n => /(^|\\/)manifest\\.json$/i.test(n) && /(^|\\/)scripts\\//i.test(n));
+  const hasRP = topLevel.has('resource_packs');
+  if (validatorFileName.toLowerCase().endsWith('.mcpack') && manifestRecords.length > 1) issues.push({level:'WARN',path:validatorFileName,message:'Một .mcpack thường chứa một pack; nhiều manifest có thể chỉ ra archive bị gộp nhầm.'});
+  for (const record of manifestRecords) {
+    const m = record.manifest || {};
+    const moduleTypes = new Set((Array.isArray(m.modules) ? m.modules : []).map(x => x && x.type).filter(Boolean));
+    const inBPFolder = /(^|\\/)(behavior_packs|bp)(\\/|$)/i.test(record.path);
+    const inRPFolder = /(^|\\/)(resource_packs|rp)(\\/|$)/i.test(record.path);
+    if (inBPFolder && moduleTypes.has('resources')) issues.push({level:'WARN',path:record.path,message:'Manifest khai báo module resources nhưng nằm trong thư mục có vẻ là Behavior Pack.'});
+    if (inRPFolder && (moduleTypes.has('data') || moduleTypes.has('script'))) issues.push({level:'WARN',path:record.path,message:'Manifest khai báo module data/script nhưng nằm trong thư mục có vẻ là Resource Pack.'});
+  }
+  for (const path of files) {
+    const normalized = path.replace(/\\/g, '/');
+    if (/^(behavior_packs|resource_packs)\\//i.test(normalized) && !/(^|\\/)manifest\\.json$/i.test(normalized)) continue;
+    if (/^(behavior_packs|resource_packs)\\/[^/]+\\//i.test(normalized)) {
+      const packRoot = normalized.split('/').slice(0, 2).join('/');
+      if (!rootFiles.has((packRoot + '/manifest.json').toLowerCase())) issues.push({level:'ERROR',path:packRoot,message:'Thiếu manifest.json ở gốc pack.'});
+    }
+  }
+  const manifestRootFiles = files.filter(n => n.split('/').pop().toLowerCase() === 'manifest.json');
+  if (manifestRootFiles.length && !topLevel.has('behavior_packs') && !topLevel.has('resource_packs')) {
+    for (const record of manifestRecords) {
+      const modules = Array.isArray(record.manifest?.modules) ? record.manifest.modules : [];
+      for (const mod of modules) if (mod?.type === 'script' && typeof mod.entry === 'string') {
+        const base = record.path.includes('/') ? record.path.slice(0, record.path.lastIndexOf('/') + 1) : '';
+        const entry = (base + mod.entry).replace(/\\/g, '/').replace(/\\/+/g, '/');
+        if (!hasFile(entry)) issues.push({level:'ERROR',path:record.path,message:'Script entry không tồn tại: ' + entry});
+      }
+    }
+  }
   renderValidatorResults(issues, jsonFiles.length);
 };
 document.getElementById('validatorManifestBtn').onclick = () => {

@@ -41,7 +41,7 @@ for (const [gameVersion, entry] of Object.entries(evidence)) {
       entry?.status !== 'release-note-evidence' ||
       typeof entry.module !== 'string' ||
       !/^\d+\.\d+\.\d+$/.test(entry.version || '') ||
-      !/^https:\/\/learn\.microsoft\.com\//.test(entry.url || '') ||
+      !(/^https:\/\/learn\.microsoft\.com\//.test(entry.url || '') || /^https:\/\/feedback\.minecraft\.net\//.test(entry.url || '')) ||
       !/^\d{4}-\d{2}-\d{2}$/.test(entry.checked || '')) {
     throw new Error('Invalid release-note evidence entry for Minecraft ' + gameVersion + '.');
   }

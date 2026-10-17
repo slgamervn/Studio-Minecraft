@@ -825,7 +825,7 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
       <div class="status" id="settingsStatus" aria-live="polite"></div>
     </div>
     <div class="card" id="personalizationCard">
-      <h2>Cá nhân hóa Studio</h2>
+      <h2 id="personalizationCardTitle">Cá nhân hóa Studio</h2>
       <p style="font-size:12px;color:var(--dim);line-height:1.7;margin-top:-4px">Lưu hồ sơ riêng cho từng dự án Bedrock và tùy chỉnh cách Studio hoạt động. Dữ liệu được lưu trên trình duyệt hiện tại; không tự đồng bộ giữa thiết bị.</p>
       <div class="settings-grid">
         <label for="personalProjectName">Tên dự án</label>
@@ -3272,8 +3272,16 @@ document.addEventListener("studio-language-change",apply);document.addEventListe
     data.profiles.forEach(profile=>{
       const card=document.createElement("div");
       card.style.cssText="border:1px solid var(--line);border-radius:12px;padding:11px;background:var(--panel2);display:grid;gap:8px;min-width:0";
+      const titleRow=document.createElement("div");
+      titleRow.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap";
       const title=safeText("strong",profile.name);
       title.style.cssText="overflow-wrap:anywhere;font-size:13px";
+      titleRow.appendChild(title);
+      if(data.preferences.rememberLast && data.lastProfileId===profile.id){
+        const selected=safeText("span","Đã chọn gần nhất");
+        selected.style.cssText="font-size:10px;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:2px 7px";
+        titleRow.appendChild(selected);
+      }
       const details=[profile.versions||"Chưa đặt phiên bản",profile.type||"bp-rp",profile.api||""].filter(Boolean).join(" · ");
       const detail=safeText("div",details);
       detail.style.cssText="color:var(--dim);font-size:11px;overflow-wrap:anywhere";
@@ -3283,7 +3291,7 @@ document.addEventListener("studio-language-change",apply);document.addEventListe
       button("Sửa",()=>edit(profile.id));
       button("Áp dụng",()=>applyProfile(profile),true);
       button("Xóa",()=>removeProfile(profile.id));
-      card.append(title,detail,actions);
+      card.append(titleRow,detail,actions);
       if(profile.notes) card.appendChild(safeText("div",profile.notes));
       list.appendChild(card);
     });
@@ -3294,6 +3302,7 @@ document.addEventListener("studio-language-change",apply);document.addEventListe
   const edit = id => {
     const p=data.profiles.find(item=>item.id===id); if(!p)return;
     editingId=id;
+    if(data.preferences.rememberLast){data.lastProfileId=id;write();render();}
     $("personalProjectName").value=p.name||"";
     $("personalProjectVersions").value=p.versions||"";
     $("personalProjectType").value=p.type||"bp-rp";

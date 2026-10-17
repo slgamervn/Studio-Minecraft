@@ -2574,11 +2574,14 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     renderToolCompatibilityNotes();
     const apiMapping = compatibilityData.script_api.minecraft_to_server_api_partial[target];
     const releaseEvidence = (compatibilityData.script_api.release_note_evidence || {})[target];
+    const previewEvidence = (compatibilityData.script_api.preview_evidence || {})[target];
     status(apiMapping && apiMapping !== 'unknown'
       ? 'Compatibility report refreshed for Minecraft ' + target + '. Evidence: exact documented mapping @minecraft/server ' + apiMapping + '.'
       : releaseEvidence
         ? 'Compatibility report refreshed for Minecraft ' + target + '. Evidence: release notes record ' + releaseEvidence.module + ' ' + releaseEvidence.version + '; this is not an exact mapping-table entry.'
-        : 'Compatibility report refreshed for Minecraft ' + target + '. Evidence status: unknown; this does not mean unsupported and no API version was inferred.', false);
+        : previewEvidence
+          ? 'Compatibility report refreshed for preview build ' + target + '. Evidence: ' + previewEvidence.module + ' ' + previewEvidence.version + '; this is beta/preview only.'
+          : 'Compatibility report refreshed for Minecraft ' + target + '. Evidence status: unknown; this does not mean unsupported and no API version was inferred.', false);
   });
   byId('compatRefreshBtn')?.addEventListener('click', refreshOnline);
   async function ensureCompatibilityData() {

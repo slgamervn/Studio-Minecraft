@@ -178,6 +178,7 @@ const server = http.createServer(async (req, res) => {
     }, origin);
   }
 
+  const knowledge = await loadDocs(question);
   const failures = [];
   for (const provider of available) {
     let upstream;

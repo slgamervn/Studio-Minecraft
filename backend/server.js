@@ -47,6 +47,38 @@ const PROVIDERS = {
   }
 };
 
+
+const DOCS = {
+  releases: "https://feedback.minecraft.net/hc/en-us/sections/360001186971-Release-Changelogs",
+  creator: "https://learn.microsoft.com/en-us/minecraft/creator/?view=minecraft-bedrock-stable",
+  script: "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/?view=minecraft-bedrock-stable",
+  manifest: "https://learn.microsoft.com/en-us/minecraft/creator/reference/content/addonsreference/packmanifest?view=minecraft-bedrock-stable"
+};
+
+async function loadDocs(question) {
+  const q = question.toLowerCase();
+  const urls = [];
+  if (/latest|current|version|release|newest|recent|phiên bản|hiện tại|mới nhất|cập nhật|phát hành|bao nhiêu/.test(q)) urls.push(DOCS.releases, DOCS.creator);
+  if (/script|api|event|minecraft\/server/.test(q)) urls.push(DOCS.script);
+  if (/manifest|uuid|format_version|dependency|resource pack|behavior pack|addon|add-on/.test(q)) urls.push(DOCS.manifest);
+  if (!urls.length) urls.push(DOCS.creator);
+  const pages = await Promise.all([...new Set(urls)].slice(0, 3).map(async url => {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { "User-Agent": "BedrockCoderStudio/1.0" } });
+      if (!response.ok) return null;
+      let html = await response.text();
+      html = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/\s+/g, " ");
+      return { url, text: html.trim().slice(0, url === DOCS.releases ? 5500 : 4000) };
+    } catch { return null; }
+  }));
+  const good = pages.filter(Boolean);
+  return {
+    context: good.map((p, i) => "Source " + (i + 1) + ": " + p.url + "\n" + p.text).join("\n\n").slice(0, 10000),
+    sources: good.map(p => p.url),
+    webUsed: good.length > 0
+  };
+}
+
 function send(res, status, data, origin) {
   const headers = {
     "Content-Type": "application/json; charset=utf-8",

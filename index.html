@@ -465,7 +465,7 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
       <div class="row" style="margin-top:10px;">
         <button class="primary" id="decodeBtn">Decode</button>
         <button id="encodeBtn">Encode</button>
-        <button id="fixBtn">Auto-fix JSON</button>
+        <button id="fixBtn" title="Removes trailing commas before parsing JSON.">Fix trailing commas</button>
         <button id="prettyBtn">Pretty</button>
         <button id="minifyBtn">Minify</button>
         <button id="clearBtn">Clear</button>
@@ -898,7 +898,7 @@ const I18N = {
     subtitle: 'Công cụ cho coder Minecraft Bedrock',
     tools: 'Công cụ', brarchive: 'BrArchive', pack: 'Khám phá Pack', manifest: 'Manifest',
     lang: 'Lang & Mẫu', coder: 'Công cụ Coder', settings: 'Cài đặt',
-    decode: 'Giải mã', encode: 'Mã hoá', fix: 'Tự sửa JSON', pretty: 'Định dạng',
+    decode: 'Giải mã', encode: 'Mã hoá', fix: 'Sửa dấu phẩy thừa', pretty: 'Định dạng',
     minify: 'Nén', clear: 'Xoá', copy: 'Sao chép', highlight: 'Tô màu',
     genUuid: 'Tạo UUID', openBr: 'Mở .brarchive', addFiles: 'Thêm file', addFolder: '📁 Thêm thư mục', new: 'Mới',
     packBr: 'Đóng gói .brarchive', exportZip: 'Xuất ZIP', openPack: 'Mở pack',
@@ -912,7 +912,7 @@ const I18N = {
     subtitle: 'Tools for Minecraft Bedrock coders',
     tools: 'Tools', brarchive: 'BrArchive', pack: 'Pack Explorer', manifest: 'Manifest',
     lang: 'Lang & Templates', coder: 'Coder Tools', settings: 'Settings',
-    decode: 'Decode', encode: 'Encode', fix: 'Auto-fix JSON', pretty: 'Pretty',
+    decode: 'Decode', encode: 'Encode', fix: 'Fix trailing commas', pretty: 'Pretty',
     minify: 'Minify', clear: 'Clear', copy: 'Copy', highlight: 'Highlight',
     genUuid: 'Generate UUID', openBr: 'Open .brarchive', addFiles: 'Add files', addFolder: '📁 Add folder', new: 'New',
     packBr: 'Pack .brarchive', exportZip: 'Export ZIP', openPack: 'Open pack',
@@ -926,7 +926,7 @@ const I18N = {
     subtitle: 'Minecraft 基岩版开发工具',
     tools: '工具', brarchive: 'BrArchive', pack: '包浏览器', manifest: '清单',
     lang: '语言与模板', coder: '开发工具', settings: '设置',
-    decode: '解码', encode: '编码', fix: '自动修复 JSON', pretty: '美化',
+    decode: '解码', encode: '编码', fix: '修复多余逗号', pretty: '美化',
     minify: '压缩', clear: '清除', copy: '复制', highlight: '高亮',
     genUuid: '生成 UUID', openBr: '打开 .brarchive', addFiles: '添加文件', addFolder: '📁 添加文件夹', new: '新建',
     packBr: '打包 .brarchive', exportZip: '导出 ZIP', openPack: '打开包',
@@ -940,7 +940,7 @@ const I18N = {
     subtitle: 'Herramientas para coders de Minecraft Bedrock',
     tools: 'Herramientas', brarchive: 'BrArchive', pack: 'Explorador', manifest: 'Manifiesto',
     lang: 'Lang y Plantillas', coder: 'Herramientas Coder', settings: 'Ajustes',
-    decode: 'Decodificar', encode: 'Codificar', fix: 'Auto-corregir JSON', pretty: 'Bonito',
+    decode: 'Decodificar', encode: 'Codificar', fix: 'Corregir comas finales', pretty: 'Bonito',
     minify: 'Minificar', clear: 'Limpiar', copy: 'Copiar', highlight: 'Resaltar',
     genUuid: 'Generar UUID', openBr: 'Abrir .brarchive', addFiles: 'Añadir archivos', addFolder: '📁 Añadir carpeta', new: 'Nuevo',
     packBr: 'Empaquetar .brarchive', exportZip: 'Exportar ZIP', openPack: 'Abrir pack',
@@ -954,7 +954,7 @@ const I18N = {
     subtitle: 'Alat untuk coder Minecraft Bedrock',
     tools: 'Alat', brarchive: 'BrArchive', pack: 'Penjelajah Pack', manifest: 'Manifest',
     lang: 'Lang & Template', coder: 'Alat Coder', settings: 'Pengaturan',
-    decode: 'Decode', encode: 'Encode', fix: 'Perbaiki JSON', pretty: 'Rapikan',
+    decode: 'Decode', encode: 'Encode', fix: 'Perbaiki koma berlebih', pretty: 'Rapikan',
     minify: 'Minify', clear: 'Hapus', copy: 'Salin', highlight: 'Sorot',
     genUuid: 'Buat UUID', openBr: 'Buka .brarchive', addFiles: 'Tambah file', addFolder: '📁 Tambah folder', new: 'Baru',
     packBr: 'Pack .brarchive', exportZip: 'Ekspor ZIP', openPack: 'Buka pack',

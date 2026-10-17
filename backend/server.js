@@ -111,7 +111,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
-    return send(res, 200, { ok: true, service: "studio-ai-backend", providers: Object.keys(PROVIDERS) }, origin);
+    return send(res, 200, {
+      ok: true,
+      service: "studio-ai-backend",
+      providers: Object.keys(PROVIDERS),
+      configuredProviders: Object.entries(PROVIDERS).filter(([, config]) => Boolean(config.key())).map(([id]) => id)
+    }, origin);
   }
 
   if (req.method !== "POST" || url.pathname !== "/api/ai") {
@@ -129,59 +134,86 @@ const server = http.createServer(async (req, res) => {
   catch (error) { return send(res, error.status || 400, { error: error.message }, origin); }
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
-  const providerId = typeof body.provider === "string" ? body.provider.toLowerCase() : "openai";
-  const provider = PROVIDERS[providerId];
-  if (!provider) return send(res, 400, { error: "Unsupported AI provider." }, origin);
   if (!question) return send(res, 400, { error: "Please enter a question." }, origin);
   if (question.length > MAX_QUESTION) return send(res, 413, { error: "Question must be 1200 characters or fewer." }, origin);
 
-  const apiKey = provider.key();
-  if (!apiKey) {
-    return send(res, 503, { error: provider.label + " is not configured. Add its API key in the Render environment variables." }, origin);
+  const available = Object.entries(PROVIDERS)
+    .filter(([, config]) => Boolean(config.key()))
+    .map(([id, config]) => ({ id, ...config }));
+  if (!available.length) {
+    return send(res, 503, {
+      error: "No AI provider is configured. Add at least one provider API key in Render Environment."
+    }, origin);
   }
 
-  let upstream;
-  try {
-    upstream = await fetch(provider.url, {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + apiKey,
-        "Content-Type": "application/json",
-        ...(providerId === "openrouter" ? { "HTTP-Referer": "https://slgamervn.github.io/Studio-Minecraft/", "X-Title": "Bedrock Coder Studio" } : {})
-      },
-      signal: AbortSignal.timeout(30000),
-      body: JSON.stringify({
-        model: provider.model(),
-        messages: [
-          { role: "system", content: "You are Studio AI, a technical assistant for Minecraft Bedrock add-ons and Bedrock Coder Studio. Reply in the user's language, usually Vietnamese. Be concise, practical, and accurate. Never invent API names, versions, compatibility, or test results. Distinguish valid JSON syntax from valid Minecraft schemas. Never ask for API keys or secrets." },
-          { role: "user", content: question }
-        ],
-        max_tokens: 700,
-        stream: false
-      })
-    });
-  } catch {
-    return send(res, 502, { error: "Could not connect to " + provider.label + ". Try again later." }, origin);
+  const failures = [];
+  for (const provider of available) {
+    let upstream;
+    let data;
+    try {
+      upstream = await fetch(provider.url, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + provider.key(),
+          "Content-Type": "application/json",
+          ...(provider.id === "openrouter" ? { "HTTP-Referer": "https://slgamervn.github.io/Studio-Minecraft/", "X-Title": "Bedrock Coder Studio" } : {})
+        },
+        signal: AbortSignal.timeout(12000),
+        body: JSON.stringify({
+          model: provider.model(),
+          messages: [
+            { role: "system", content: "You are Studio AI, a technical assistant for Minecraft Bedrock add-ons and Bedrock Coder Studio. Reply in the user's language, usually Vietnamese. Be concise, practical, and accurate. Never invent API names, versions, compatibility, or test results. Distinguish valid JSON syntax from valid Minecraft schemas. Never ask for API keys or secrets." },
+            { role: "user", content: question }
+          ],
+          max_tokens: 700,
+          stream: false
+        })
+      });
+    } catch (error) {
+      failures.push(provider.label + ": network error or timeout");
+      continue;
+    }
+
+    try { data = await upstream.json(); }
+    catch {
+      failures.push(provider.label + ": unreadable response");
+      continue;
+    }
+
+    if (!upstream.ok) {
+      const reason = upstream.status === 401 || upstream.status === 403
+        ? "API key or account access rejected"
+        : upstream.status === 429
+          ? "rate limit or usage limit reached"
+          : "provider/model error (HTTP " + upstream.status + ")";
+      failures.push(provider.label + ": " + reason);
+      continue;
+    }
+
+    const answer = data.choices?.[0]?.message?.content;
+    const textAnswer = typeof answer === "string"
+      ? answer.trim()
+      : Array.isArray(answer)
+        ? answer.map(part => part.text || "").join("").trim()
+        : "";
+    if (!textAnswer) {
+      failures.push(provider.label + ": empty answer");
+      continue;
+    }
+
+    return send(res, 200, {
+      answer: textAnswer,
+      provider: provider.id,
+      providerLabel: provider.label,
+      model: provider.model(),
+      fallbackUsed: failures.length > 0
+    }, origin);
   }
 
-  let data;
-  try { data = await upstream.json(); }
-  catch { return send(res, 502, { error: provider.label + " returned an unreadable response." }, origin); }
-
-  if (!upstream.ok) {
-    const status = upstream.status === 429 ? 429 : 502;
-    const message = upstream.status === 401 || upstream.status === 403
-      ? provider.label + " rejected the API key or account access."
-      : upstream.status === 429
-        ? provider.label + " rate or usage limit reached."
-        : provider.label + " could not answer. Check the configured model and provider account.";
-    return send(res, status, { error: message }, origin);
-  }
-
-  const answer = data.choices?.[0]?.message?.content;
-  const textAnswer = typeof answer === "string" ? answer.trim() : Array.isArray(answer) ? answer.map(part => part.text || "").join("").trim() : "";
-  if (!textAnswer) return send(res, 502, { error: provider.label + " did not produce an answer." }, origin);
-  return send(res, 200, { answer: textAnswer, provider: providerId, model: provider.model() }, origin);
+  return send(res, 502, {
+    error: "All configured AI providers failed. Check their API keys, model names, account limits, and Render logs.",
+    details: failures
+  }, origin);
 });
 
 server.listen(PORT, "0.0.0.0", () => {

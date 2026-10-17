@@ -54,6 +54,15 @@ for (const id of ids) {
   seenIds.add(id);
 }
 
+const directHandlers = new Map();
+for (const match of html.matchAll(/getElementById\(['"]([^'"]+)['"]\)\.(onclick|onchange|oninput|onkeyup|onkeydown)\s*=/g)) {
+  const key = match[1] + '.' + match[2];
+  directHandlers.set(key, (directHandlers.get(key) || 0) + 1);
+}
+for (const [key, count] of directHandlers) {
+  if (count > 1) throw new Error('Duplicate direct event-handler assignment found: ' + key);
+}
+
 const serviceWorker = await readFile('sw.js', 'utf8');
 new vm.Script(serviceWorker, { filename: 'sw.js' });
 if (!serviceWorker.includes("url.pathname.endsWith('/data/minecraft-compat.json')") ||

@@ -2466,6 +2466,21 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     const urlLabel=document.querySelector('label[for="studioAiBackendUrl"]');if(urlLabel)urlLabel.textContent=get('backendUrl');
     const input=document.getElementById('studioAiInput');if(input)input.placeholder=get('aiInput');
     const sendButton=document.querySelector('#studioAiForm button');if(sendButton)sendButton.textContent=lang==='vi'?'Gửi':lang==='zh'?'发送':lang==='es'?'Enviar':lang==='id'?'Kirim':'Send';
+    const aiWelcome=['Xin chào! Mình có thể trả lời câu hỏi thường gặp ngay trên máy, hoặc dùng AI trực tuyến cho câu hỏi mới khi backend đã được cấu hình. Không có backend thì các câu trả lời ngoại tuyến vẫn dùng được.','Hi! I can answer common questions locally or use online AI for new questions when the backend is configured. Offline answers remain available without a backend.','你好！我可以在本地回答常见问题，也可以在配置后端后使用在线 AI 回答新问题。没有后端时仍可使用离线回答。','¡Hola! Puedo responder preguntas frecuentes localmente o usar IA en línea cuando el backend esté configurado. Sin backend, las respuestas sin conexión siguen disponibles.','Hai! Saya dapat menjawab pertanyaan umum secara lokal atau memakai AI online untuk pertanyaan baru setelah backend dikonfigurasi. Jawaban offline tetap tersedia tanpa backend.'][ix];
+    const firstBot=document.querySelector('#studioAiMessages .studio-ai-msg.bot');
+    if(firstBot&&firstBot.dataset.welcome!=='false'&&(firstBot.textContent.startsWith('Xin chào!')||firstBot.dataset.welcome==='true')){firstBot.textContent=aiWelcome;firstBot.dataset.welcome='true';}
+    const suggestionTexts=[
+      ['Manifest','Lỗi JSON','Script API','Achievement-friendly'],
+      ['Manifest','JSON errors','Script API','Achievement-friendly'],
+      ['Manifest','JSON 错误','Script API','成就友好'],
+      ['Manifiesto','Errores JSON','Script API','Compatible con logros'],
+      ['Manifest','Error JSON','Script API','Ramah achievement']
+    ][ix];
+    document.querySelectorAll('.studio-ai-suggestions button').forEach((button,index)=>{if(suggestionTexts[index])button.textContent=suggestionTexts[index];});
+    const aiStatus=document.getElementById('studioAiBackendStatus');
+    if(aiStatus&&/Chưa cấu hình backend; câu trả lời ngoại tuyến vẫn dùng được\./.test(aiStatus.textContent)){
+      aiStatus.textContent=['Chưa cấu hình backend; câu trả lời ngoại tuyến vẫn dùng được.','Backend not configured; offline answers are still available.','尚未配置后端；仍可使用离线回答。','Backend no configurado; las respuestas sin conexión siguen disponibles.','Backend belum dikonfigurasi; jawaban offline tetap tersedia.'][ix];
+    }
     headingMap.forEach(([selector,key])=>{const el=document.querySelector(selector),v=get(key);if(el&&v)el.textContent=v;});
     const theme=document.getElementById('themeBtn');if(theme)theme.title=lang==='vi'?'Đổi giao diện sáng/tối':lang==='zh'?'切换浅色/深色主题':lang==='es'?'Cambiar tema claro/oscuro':lang==='id'?'Ganti tema terang/gelap':'Toggle light/dark theme';
   }

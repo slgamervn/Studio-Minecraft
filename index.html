@@ -359,6 +359,23 @@ footer{font-size:11px;opacity:.78}
 @media(prefers-reduced-motion:reduce){.studio-ai-fab{animation:none!important}}
 
 
+/* Unicode-first font system with device/app font preference */
+:root{
+  --font-device:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans","Noto Sans CJK SC","Noto Sans CJK TC","Noto Sans CJK JP","Noto Sans Symbols 2","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  --font-app:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans","Noto Sans Symbols 2","Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  --font-code:ui-monospace,"Cascadia Code","SFMono-Regular",Consolas,"Liberation Mono","Noto Sans Mono",monospace;
+}
+body{font-family:var(--font-device);font-synthesis:none;text-rendering:optimizeLegibility}
+body[data-font="app"]{font-family:var(--font-app)}
+body[data-font="mono"]{font-family:var(--font-code);letter-spacing:0}
+body[data-font="mono"] button,body[data-font="mono"] input,body[data-font="mono"] textarea,body[data-font="mono"] select{font-family:var(--font-code)}
+button,input,textarea,select{font-family:inherit}
+textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-family:var(--font-code)}
+.studio-ai-msg{overflow-wrap:anywhere;word-break:normal;unicode-bidi:plaintext}
+.studio-ai-msg code{font-family:var(--font-code);overflow-wrap:anywhere}
+#fontSelect{max-width:108px;min-width:88px}
+@media(max-width:640px){#fontSelect{max-width:90px;min-width:76px;font-size:10.5px;padding:8px 5px}.header-right{flex-wrap:wrap;justify-content:flex-end}}
+
 /* Compact mobile AI panel: keep the workspace visible */
 @media(max-width:640px){
   .studio-ai-panel{
@@ -389,12 +406,17 @@ footer{font-size:11px;opacity:.78}
     <div class="sub" id="loadStatus">Đang tải...</div>
   </div>
   <div class="header-right">
-    <select id="langSelect" class="lang-select">
+    <select id="langSelect" class="lang-select" aria-label="Ngôn ngữ giao diện">
       <option value="vi">Tiếng Việt</option>
       <option value="en">English</option>
       <option value="zh">中文</option>
       <option value="es">Español</option>
       <option value="id">Indonesia</option>
+    </select>
+    <select id="fontSelect" class="lang-select" aria-label="Kiểu chữ" title="Kiểu chữ">
+      <option value="device">Aa · Máy</option>
+      <option value="app">Aa · App</option>
+      <option value="mono">Aa · Mono</option>
     </select>
     <button id="themeBtn">🌙</button>
   </div>
@@ -2267,6 +2289,21 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 </div>
 <button type="button" id="studioAiFab" class="studio-ai-fab" aria-expanded="false" aria-controls="studioAiPanel">✦ Studio AI</button>
 <script>
+(function(){
+  const fontSelect=document.getElementById('fontSelect');
+  const fontKey='bedrock_studio_font_v1';
+  function applyFont(value){
+    const allowed=['device','app','mono'];
+    const font=allowed.includes(value)?value:'device';
+    document.body.dataset.font=font;
+    if(fontSelect)fontSelect.value=font;
+    try{localStorage.setItem(fontKey,font)}catch(_){}
+  }
+  let savedFont='device';
+  try{savedFont=localStorage.getItem(fontKey)||'device'}catch(_){}
+  applyFont(savedFont);
+  fontSelect?.addEventListener('change',()=>applyFont(fontSelect.value));
+})();
 (function(){
   const panel=document.getElementById('studioAiPanel'),fab=document.getElementById('studioAiFab'),close=document.getElementById('studioAiClose'),messages=document.getElementById('studioAiMessages'),form=document.getElementById('studioAiForm'),input=document.getElementById('studioAiInput'),backendInput=document.getElementById('studioAiBackendUrl'),backendStatus=document.getElementById('studioAiBackendStatus'),saveBackend=document.getElementById('studioAiSaveBackend'),testBackend=document.getElementById('studioAiTestBackend');
   if(!panel||!fab||!messages||!form||!input)return;

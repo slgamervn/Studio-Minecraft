@@ -2583,7 +2583,10 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     if (!compatibilityData) return;
     renderReport();
     renderToolCompatibilityNotes();
-    status('Compatibility report refreshed for Minecraft ' + target + '.', false);
+    const apiMapping = compatibilityData.script_api.minecraft_to_server_api_partial[target];
+    status(apiMapping && apiMapping !== 'unknown'
+      ? 'Compatibility report refreshed for Minecraft ' + target + '; documented API mapping: @minecraft/server ' + apiMapping + '.'
+      : 'Compatibility report refreshed for Minecraft ' + target + '. Exact Script API mapping is unknown in the bundled table; this does not mean unsupported. No API version was inferred.', false);
   });
   byId('compatRefreshBtn')?.addEventListener('click', refreshOnline);
   async function ensureCompatibilityData() {

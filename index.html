@@ -1784,6 +1784,36 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     }
     if (formatVersion !== undefined && typeof formatVersion !== 'string' && typeof formatVersion !== 'number') issues.push({level:'ERROR',path,message:'format_version phải là chuỗi hoặc số theo schema của tệp.'});
     if (typeof formatVersion === 'string' && !/^\\d+\\.\\d+\\.\\d+$/.test(formatVersion)) issues.push({level:'WARN',path,message:'format_version không theo dạng x.y.z quen thuộc; cần xác minh schema của loại tệp.'});
+    const rootKeys = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.keys(parsed) : [];
+    const requireRoot = (key, label) => {
+      if (!rootKeys.includes(key)) issues.push({level:'WARN',path,message:'Tên/loại tệp gợi ý ' + label + ', nhưng thiếu khóa gốc "' + key + '". Xác minh schema và format_version theo loại tài nguyên.'});
+    };
+    const lowerPath = path.toLowerCase();
+    if (lowerPath.includes('/entities/') || lowerPath.startsWith('entities/')) requireRoot('minecraft:entity','Behavior Pack entity');
+    if (lowerPath.includes('/entity/') && /\.entity\.json$/i.test(baseName)) requireRoot('minecraft:client_entity','Resource Pack client entity');
+    if (lowerPath.includes('/items/') || lowerPath.startsWith('items/')) requireRoot('minecraft:item','item definition');
+    if (lowerPath.includes('/blocks/') || lowerPath.startsWith('blocks/')) requireRoot('minecraft:block','block definition');
+    if (lowerPath.includes('/recipes/') || lowerPath.startsWith('recipes/')) {
+      if (!rootKeys.some(k => /^minecraft:recipe_/i.test(k))) issues.push({level:'WARN',path,message:'Tệp trong thư mục recipes/ không có khóa minecraft:recipe_*; kiểm tra loại công thức và schema.'});
+    }
+    if (lowerPath.includes('/spawn_rules/') || lowerPath.startsWith('spawn_rules/')) requireRoot('minecraft:spawn_rules','spawn rules');
+    if (/render_controller/i.test(baseName)) requireRoot('render_controllers','render controller');
+    if (/animation_controller/i.test(baseName)) requireRoot('animation_controllers','animation controller');
+    if (/particle/i.test(baseName)) requireRoot('particle_effect','particle definition');
+    if (/\.geo\.json$/i.test(baseName)) requireRoot('minecraft:geometry','geometry');
+    if (/attachable/i.test(baseName)) requireRoot('minecraft:attachable','attachable');
+    if (/loot_tables?\//i.test(lowerPath) && !rootKeys.includes('pools')) issues.push({level:'WARN',path,message:'Loot table thường khai báo pools ở cấp gốc; xác minh cấu trúc theo phiên bản mục tiêu.'});
+    if (formatVersion !== undefined && typeof formatVersion === 'string') {
+      const resourceKind = lowerPath.includes('/entities/') || lowerPath.startsWith('entities/') ? 'entity'
+        : lowerPath.includes('/items/') || lowerPath.startsWith('items/') ? 'item'
+        : lowerPath.includes('/blocks/') || lowerPath.startsWith('blocks/') ? 'block'
+        : lowerPath.includes('/recipes/') || lowerPath.startsWith('recipes/') ? 'recipe'
+        : /\.geo\.json$/i.test(baseName) ? 'geometry'
+        : /render_controller/i.test(baseName) ? 'render-controller'
+        : /animation_controller/i.test(baseName) ? 'animation-controller'
+        : '';
+      if (resourceKind && !/^\d+\.\d+\.\d+$/.test(formatVersion)) issues.push({level:'WARN',path,message:'format_version "' + formatVersion + '" không theo dạng x.y.z phổ biến cho ' + resourceKind + '; xác minh tài liệu của đúng loại tài nguyên.'});
+    }
     if (baseName === 'manifest.json') {
       manifestCount++;
       validateManifestObject(parsed, path, issues, uuidSet);

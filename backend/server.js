@@ -1,7 +1,7 @@
 import http from "node:http";
 
 const PORT = Number(process.env.PORT || 10000);
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "https://slgamervn.github.io";
+const ALLOWED_ORIGINS = new Set(["https://slgamervn.github.io", ...(process.env.ALLOWED_ORIGIN || "").split(",").map(value => value.trim()).filter(Boolean)]);
 const MAX_BODY = 8000;
 const MAX_QUESTION = 1200;
 const WINDOW_MS = 60_000;
@@ -55,8 +55,8 @@ function send(res, status, data, origin) {
     "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
     "Referrer-Policy": "no-referrer"
   };
-  if (origin === ALLOWED_ORIGIN) {
-    headers["Access-Control-Allow-Origin"] = ALLOWED_ORIGIN;
+  if (ALLOWED_ORIGINS.has(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
     headers["Vary"] = "Origin";
   }
   res.writeHead(status, headers);
@@ -94,14 +94,14 @@ const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin || "";
   const url = new URL(req.url || "/", "http://localhost");
 
-  if (origin && origin !== ALLOWED_ORIGIN) {
+  if (origin && !ALLOWED_ORIGINS.has(origin)) {
     return send(res, 403, { error: "Origin is not allowed." });
   }
 
   if (req.method === "OPTIONS") {
-    if (origin !== ALLOWED_ORIGIN) return send(res, 403, { error: "Origin is not allowed." });
+    if (!ALLOWED_ORIGINS.has(origin)) return send(res, 403, { error: "Origin is not allowed." });
     res.writeHead(204, {
-      "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "600",
@@ -117,7 +117,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== "POST" || url.pathname !== "/api/ai") {
     return send(res, 404, { error: "Endpoint not found." }, origin);
   }
-  if (origin !== ALLOWED_ORIGIN) {
+  if (!ALLOWED_ORIGINS.has(origin)) {
     return send(res, 403, { error: "A request from the Studio website is required." });
   }
   if (rateLimited(clientKey(req))) {

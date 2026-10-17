@@ -422,6 +422,20 @@ textarea,pre,code,.hl-pre,.CodeMirror,.monaco-editor,.editor,.code-editor{font-f
 @media(max-width:760px){.home-hero{grid-template-columns:1fr}.home-hero-side{grid-template-columns:repeat(2,minmax(0,1fr))}.home-actions,.home-lower{grid-template-columns:repeat(2,minmax(0,1fr))}.home-lower{grid-template-columns:1fr}}
 @media(max-width:420px){.home-actions{grid-template-columns:1fr}.home-action{min-height:0;display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;column-gap:11px;padding:12px}.home-action .home-icon{grid-row:span 2}.home-action strong,.home-action small{grid-column:2}.home-hero-side{grid-template-columns:1fr 1fr}.home-title{font-size:27px}}
 @media(min-width:980px){#tab-home{max-width:1280px}.home-action{min-height:154px}}
+
+.json-diagnostic{padding:10px 12px;border-top:1px solid var(--line);font-size:12px;line-height:1.55;overflow-wrap:anywhere;background:#101416}
+.json-diagnostic[hidden]{display:none}
+.json-diagnostic.is-error{border-left:3px solid #ef6b73;background:color-mix(in srgb,#ef6b73 7%,var(--panel))}
+.json-diagnostic.is-ok{border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel))}
+.json-diagnostic-title{font-weight:700;margin-bottom:4px;color:#ff858b}
+.json-diagnostic.is-ok .json-diagnostic-title{color:var(--accent)}
+.json-diagnostic-message,.json-diagnostic-note{color:var(--text);opacity:.9}
+.json-error-snippet{display:grid;grid-template-columns:32px minmax(0,1fr);gap:0;margin:9px 0 0;padding:7px 0;background:#0a0d0e;border:1px solid #4a2c31;border-radius:5px;overflow:auto;font:12px/1.7 var(--mono);white-space:pre}
+.json-error-line-number{padding:0 8px;color:#ff858b;text-align:right;background:#321c20;border-right:1px solid #623139;user-select:none}
+.json-error-code{padding:0 10px;color:var(--text)}
+.json-error-code mark{background:#a92735;color:#fff;text-decoration:underline wavy #ffb4b8;text-underline-offset:3px}
+.json-error-caret{grid-column:2;padding:0 10px;color:#ff858b;white-space:pre}
+
 </style>
 </head>
 <body>
@@ -1558,6 +1572,74 @@ function buildBrarchive(entries) {
   });
   return buf;
 }
+function getJsonErrorLocation(text, error) {
+  const message = String(error && error.message || '');
+  let offset = null;
+  const positionMatch = message.match(/(?:position|at position)\\s+(\\d+)/i);
+  const lineColumnMatch = message.match(/line\\s+(\\d+)\\s+column\\s+(\\d+)/i);
+  if (positionMatch) offset = Number(positionMatch[1]);
+  if (offset === null && lineColumnMatch) {
+    const targetLine = Number(lineColumnMatch[1]);
+    const targetColumn = Number(lineColumnMatch[2]);
+    let line = 1;
+    offset = 0;
+    while (offset < text.length && line < targetLine) {
+      if (text[offset++] === '\\n') line++;
+    }
+    offset += Math.max(0, targetColumn - 1);
+  }
+  if (offset === null) {
+    const tokenMatch = message.match(/Unexpected token ['"]?(.{1,8}?)['"]?(?:,|\\s|$)/i);
+    if (tokenMatch && tokenMatch[1]) {
+      const found = text.indexOf(tokenMatch[1]);
+      if (found >= 0) offset = found;
+    }
+  }
+  if (offset === null || !Number.isFinite(offset)) return null;
+  offset = Math.max(0, Math.min(text.length, offset));
+  const before = text.slice(0, offset);
+  const line = before.split('\\n').length;
+  const lastNewline = before.lastIndexOf('\\n');
+  return { offset, line, column: offset - lastNewline };
+}
+
+function renderJsonErrorDiagnostic(panel, text, error, location) {
+  panel.replaceChildren();
+  panel.hidden = false;
+  panel.className = 'json-diagnostic is-error';
+  const title = document.createElement('div');
+  title.className = 'json-diagnostic-title';
+  title.textContent = location
+    ? '✕ Lỗi JSON — dòng ' + location.line + ', cột ' + location.column
+    : '✕ Lỗi JSON — không xác định được chính xác vị trí';
+  panel.append(title);
+  const message = document.createElement('div');
+  message.className = 'json-diagnostic-message';
+  message.textContent = String(error && error.message || error);
+  panel.append(message);
+  if (!location) return;
+  const lines = text.split('\\n');
+  const lineText = lines[location.line - 1] || '';
+  const snippet = document.createElement('pre');
+  snippet.className = 'json-error-snippet';
+  const lineNumber = document.createElement('span');
+  lineNumber.className = 'json-error-line-number';
+  lineNumber.textContent = String(location.line);
+  const code = document.createElement('span');
+  code.className = 'json-error-code';
+  const safeOffset = Math.max(0, Math.min(lineText.length, location.column - 1));
+  code.append(document.createTextNode(lineText.slice(0, safeOffset)));
+  const marked = document.createElement('mark');
+  marked.textContent = safeOffset < lineText.length ? lineText[safeOffset] : ' ';
+  code.append(marked, document.createTextNode(lineText.slice(safeOffset + (safeOffset < lineText.length ? 1 : 0))));
+  snippet.append(lineNumber, code);
+  const caret = document.createElement('div');
+  caret.className = 'json-error-caret';
+  caret.textContent = ' '.repeat(Math.min(60, Math.max(0, location.column - 1))) + '^ vị trí lỗi';
+  snippet.append(caret);
+  panel.append(snippet);
+}
+
 function renderBrEntries() {
   const list = document.getElementById('entryList');
   document.getElementById('entryCount').textContent = brEntries.length;
@@ -1622,15 +1704,40 @@ function renderBrEntries() {
       card.append(area);
       const tools = document.createElement('div');
       tools.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:8px;';
+      const diagnostic = document.createElement('div');
+      diagnostic.className = 'json-diagnostic';
+      diagnostic.hidden = true;
       const check = document.createElement('button');
       check.textContent = '✓ Check JSON';
       check.onclick = () => {
         try {
           const parsed = JSON.parse(area.value);
+          diagnostic.replaceChildren();
+          diagnostic.hidden = false;
+          diagnostic.className = 'json-diagnostic is-ok';
+          const title = document.createElement('div');
+          title.className = 'json-diagnostic-title';
+          title.textContent = '✓ JSON hợp lệ';
+          diagnostic.append(title);
           const notes = window.StudioCompatibility && window.StudioCompatibility.checkManifest(parsed) || [];
-          if (notes.length) setStatus('brLoadStatus', 'Valid JSON; compatibility notes: ' + notes.map(issue => issue.message).join(' · '), 'err');
-          else setStatus('brLoadStatus', 'Valid JSON: ' + entry.name, 'ok');
-        } catch (error) { setStatus('brLoadStatus', 'JSON error: ' + error.message, 'err'); }
+          if (notes.length) {
+            const note = document.createElement('div');
+            note.className = 'json-diagnostic-note';
+            note.textContent = 'Lưu ý tương thích: ' + notes.map(issue => issue.message).join(' · ');
+            diagnostic.append(note);
+          }
+          setStatus('brLoadStatus', 'JSON hợp lệ: ' + entry.name, 'ok');
+        } catch (error) {
+          const location = getJsonErrorLocation(area.value, error);
+          renderJsonErrorDiagnostic(diagnostic, area.value, error, location);
+          if (location) {
+            area.focus();
+            area.setSelectionRange(location.offset, Math.min(location.offset + 1, area.value.length));
+            const lineHeight = parseFloat(getComputedStyle(area).lineHeight) || 18;
+            area.scrollTop = Math.max(0, (location.line - 2) * lineHeight);
+            setStatus('brLoadStatus', 'Lỗi JSON tại dòng ' + location.line + ', cột ' + location.column + '.', 'err');
+          } else setStatus('brLoadStatus', 'Lỗi JSON: ' + error.message, 'err');
+        }
       };
       const format = document.createElement('button');
       format.textContent = 'Format JSON';
@@ -1671,7 +1778,7 @@ function renderBrEntries() {
         catch (error) { setStatus('brLoadStatus', 'Đã sửa lỗi phổ biến; vẫn còn lỗi JSON: ' + error.message, 'err'); }
       };
       tools.append(check, format, minify, escape, fix);
-      card.append(tools);
+      card.append(tools, diagnostic);
     } else {
       const preview = document.createElement('pre');
       preview.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;margin:0;padding:10px;border-top:1px solid var(--line);font-size:12px;';

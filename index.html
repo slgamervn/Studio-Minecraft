@@ -2313,6 +2313,54 @@ if(activeTab)syncNav(activeTab.dataset.tab);
       });
       if (obj.modules && obj.modules.some(m=>m.type==='skin_pack')) issues.push({level:'WARN',message:'Custom pack settings are not supported in skin pack manifests per the official documentation.'});
     }
+    if (!Array.isArray(obj.modules) || obj.modules.length === 0) {
+      issues.push({level:'ERROR',message:'manifest.modules must be a non-empty array.'});
+    } else {
+      const moduleUuids = new Set();
+      obj.modules.forEach((module,i)=>{
+        if (!module || typeof module !== 'object') {
+          issues.push({level:'ERROR',message:'modules['+i+'] must be an object.'});
+          return;
+        }
+        if (typeof module.uuid !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(module.uuid)) {
+          issues.push({level:'ERROR',message:'modules['+i+'].uuid is missing or is not a valid UUID.'});
+        } else if (moduleUuids.has(module.uuid.toLowerCase())) {
+          issues.push({level:'ERROR',message:'Duplicate module UUID: '+module.uuid});
+        } else moduleUuids.add(module.uuid.toLowerCase());
+        if (module.type === 'script') {
+          if (typeof module.entry !== 'string' || !module.entry.trim()) issues.push({level:'ERROR',message:'Script module modules['+i+'] requires an entry path.'});
+          if (module.language && module.language !== 'javascript') issues.push({level:'WARN',message:'Script module language is documented as javascript; verify unsupported language values.'});
+        }
+        if (Array.isArray(obj.dependencies) && module.type === 'script') {
+          const hasServer = obj.dependencies.some(dep => dep && dep.module_name === '@minecraft/server');
+          if (!hasServer) issues.push({level:'WARN',message:'Script module found without @minecraft/server dependency. Add only the API modules actually imported by your scripts.'});
+        }
+      });
+    }
+    if (obj.header && obj.format_version === 2 && !Array.isArray(obj.header.version)) {
+      issues.push({level:'WARN',message:'Manifest V2 uses integer arrays for header.version; review this field against the official schema.'});
+    }
+    if (obj.header && obj.format_version === 3 && Array.isArray(obj.header.version)) {
+      issues.push({level:'WARN',message:'Manifest V3 uses SemVer strings for header.version; review this field against the official schema.'});
+    }
+    if (Array.isArray(obj.dependencies)) {
+      const dependencyNames = new Set();
+      obj.dependencies.forEach((dep,i)=>{
+        if (!dep || typeof dep !== 'object') {
+          issues.push({level:'ERROR',message:'dependencies['+i+'] must be an object.'});
+          return;
+        }
+        const key = typeof dep.module_name === 'string' ? 'module:'+dep.module_name : typeof dep.uuid === 'string' ? 'uuid:'+dep.uuid.toLowerCase() : '';
+        if (!key) {
+          issues.push({level:'ERROR',message:'dependencies['+i+'] requires module_name or uuid.'});
+          return;
+        }
+        if (dependencyNames.has(key)) issues.push({level:'ERROR',message:'Duplicate manifest dependency: '+key.slice(key.indexOf(':')+1)});
+        dependencyNames.add(key);
+        if (dep.module_name && typeof dep.version !== 'string') issues.push({level:'WARN',message:'Module dependency "'+dep.module_name+'" should declare its version as a string.'});
+        if (dep.uuid && !Array.isArray(dep.version) && typeof dep.version !== 'string') issues.push({level:'WARN',message:'UUID dependency "'+dep.uuid+'" should declare a valid version value.'});
+      });
+    }
     if (Array.isArray(obj.capabilities)) obj.capabilities.forEach(cap=>{
       if (!rules.capabilities.includes(cap)) issues.push({level:'WARN',message:'Capability "'+cap+'" is not in the bundled documented list; check official docs for the target version.'});
     });

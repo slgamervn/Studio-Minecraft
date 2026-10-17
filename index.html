@@ -2570,7 +2570,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   byId('compatTargetVersion')?.addEventListener('input', () => { renderReport(); renderToolCompatibilityNotes(); });
   byId('compatCheckBtn')?.addEventListener('click', async () => {
     const target = (byId('compatTargetVersion')?.value || '').trim();
-    if (!/^\\d+\\.\\d+\\.\\d+$/.test(target)) {
+    if (!/^\d+\.\d+\.\d+$/.test(target)) {
       status('Enter a Bedrock version in x.y.z format, for example 1.26.0.', true);
       const report = byId('compatReport');
       if (report) report.textContent = 'Invalid target version. Use three numeric parts, such as 1.26.0.';

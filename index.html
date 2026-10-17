@@ -2209,5 +2209,183 @@ if(activeTab)syncNav(activeTab.dataset.tab);
 })();
 </script>
 
+
+<script>
+(function(){
+  const select=document.getElementById('langSelect');
+  if(!select)return;
+  const locales=['vi','en','zh','es','id'];
+  const dict={
+    subtitle:['Công cụ cho coder Minecraft Bedrock','Tools for Minecraft Bedrock developers','Minecraft 基岩版开发工具','Herramientas para desarrolladores de Minecraft Bedrock','Alat pengembang Minecraft Bedrock'],
+    tools:['Công cụ','Tools','工具','Herramientas','Alat'],
+    brarchive:['BrArchive','BrArchive','BrArchive','BrArchive','BrArchive'],
+    pack:['Khám phá Pack','Pack Explorer','包浏览器','Explorador de packs','Penjelajah Pack'],
+    manifest:['Manifest','Manifest','清单','Manifiesto','Manifest'],
+    validator:['Kiểm tra Add-on','Add-on Validator','附加包检查器','Validador de add-ons','Validator Add-on'],
+    lang:['Ngôn ngữ & Mẫu','Languages & Templates','语言与模板','Idiomas y plantillas','Bahasa & Template'],
+    coder:['Công cụ lập trình','Coder Tools','开发工具','Herramientas de código','Alat Coder'],
+    settings:['Cài đặt','Settings','设置','Ajustes','Pengaturan'],
+    unicode:['Mã Unicode Escape','Unicode Escape','Unicode 转义','Escape Unicode','Unicode Escape'],
+    uuid:['Tạo UUID','UUID Generator','UUID 生成器','Generador UUID','Pembuat UUID'],
+    archive:['Tệp BrArchive','BrArchive Files','BrArchive 文件','Archivos BrArchive','File BrArchive'],
+    files:['Tệp','Files','文件','Archivos','File'],
+    export:['Xuất tệp','Export','导出','Exportar','Ekspor'],
+    structure:['Cấu trúc','Structure','结构','Estructura','Struktur'],
+    imagePreview:['Xem trước ảnh / texture','Image / Texture preview','图像 / 纹理预览','Vista previa de imagen / textura','Pratinjau gambar / tekstur'],
+    manifestOverview:['Tổng quan Manifest','Manifest overview','Manifest 概览','Resumen del manifiesto','Ringkasan Manifest'],
+    textEditor:['Trình sửa tệp văn bản','Text file editor','文本文件编辑器','Editor de archivos de texto','Editor file teks'],
+    generateManifest:['Tạo Manifest','Generate Manifest','生成 Manifest','Generar manifiesto','Buat Manifest'],
+    manifestOptions:['Tùy chọn Manifest','Manifest options','Manifest 选项','Opciones del manifiesto','Opsi Manifest'],
+    langEditor:['Trình sửa ngôn ngữ','Language Editor','语言编辑器','Editor de idiomas','Editor Bahasa'],
+    quickTemplates:['Mẫu nhanh','Quick Templates','快速模板','Plantillas rápidas','Template Cepat'],
+    packSkeleton:['Khung Pack','Pack Skeleton','包骨架','Estructura del pack','Kerangka Pack'],
+    scriptHelper:['Trợ lý Script API','Script API Helper','Script API 助手','Ayudante de Script API','Bantuan Script API'],
+    snippets:['Đoạn mã mẫu','Snippets','代码片段','Fragmentos de código','Snippet'],
+    compatibility:['Dữ liệu tương thích Minecraft','Minecraft Compatibility Data','Minecraft 兼容性数据','Datos de compatibilidad de Minecraft','Data Kompatibilitas Minecraft'],
+    supportedFiles:['Định dạng tệp hỗ trợ','Supported Files','支持的文件','Archivos compatibles','File yang Didukung'],
+    decode:['Giải mã','Decode','解码','Decodificar','Decode'],
+    encode:['Mã hóa','Encode','编码','Codificar','Encode'],
+    fix:['Tự sửa JSON','Auto-fix JSON','自动修复 JSON','Corregir JSON automáticamente','Perbaiki JSON otomatis'],
+    pretty:['Định dạng JSON','Format JSON','格式化 JSON','Formatear JSON','Format JSON'],
+    minify:['Nén JSON','Minify JSON','压缩 JSON','Minificar JSON','Minify JSON'],
+    clear:['Xóa','Clear','清除','Limpiar','Hapus'],
+    copy:['Sao chép','Copy','复制','Copiar','Salin'],
+    highlight:['Tô sáng','Highlight','高亮','Resaltar','Sorot'],
+    genUuid:['Tạo UUID','Generate UUID','生成 UUID','Generar UUID','Buat UUID'],
+    openBr:['Mở .brarchive','Open .brarchive','打开 .brarchive','Abrir .brarchive','Buka .brarchive'],
+    addFiles:['Thêm tệp','Add files','添加文件','Añadir archivos','Tambah file'],
+    new:['Tạo mới','New','新建','Nuevo','Baru'],
+    packBr:['Đóng gói .brarchive','Pack .brarchive','打包 .brarchive','Empaquetar .brarchive','Pack .brarchive'],
+    exportZip:['Xuất ZIP','Export ZIP','导出 ZIP','Exportar ZIP','Ekspor ZIP'],
+    openPack:['Mở pack','Open pack','打开包','Abrir pack','Buka pack'],
+    exportMcpack:['Xuất archive','Export archive','导出压缩包','Exportar archivo','Ekspor arsip'],
+    generate:['Tạo','Generate','生成','Generar','Buat'],
+    validatePack:['Kiểm tra pack','Validate pack','检查附加包','Validar pack','Periksa pack'],
+    choosePack:['Chọn .mcpack / .mcaddon / .zip','Choose .mcpack / .mcaddon / .zip','选择 .mcpack / .mcaddon / .zip','Elegir .mcpack / .mcaddon / .zip','Pilih .mcpack / .mcaddon / .zip'],
+    validateManifest:['Kiểm tra manifest','Validate manifest','检查 manifest','Validar manifest','Periksa manifest'],
+    clearResults:['Xóa kết quả','Clear results','清除结果','Borrar resultados','Hapus hasil'],
+    results:['Kết quả kiểm tra','Validation results','检查结果','Resultados de validación','Hasil pemeriksaan'],
+    searchFiles:['Tìm tệp theo tên…','Search files by name…','按名称搜索文件…','Buscar archivos por nombre…','Cari file berdasarkan nama…'],
+    open:['Mở','Open','打开','Abrir','Buka'],
+    formatJson:['Định dạng JSON','Format JSON','格式化 JSON','Formatear JSON','Format JSON'],
+    checkSyntax:['Kiểm tra cú pháp','Check syntax','检查语法','Comprobar sintaxis','Periksa sintaks'],
+    saveChanges:['Lưu thay đổi','Save changes','保存更改','Guardar cambios','Simpan perubahan'],
+    renamePath:['Đổi tên đường dẫn','Rename path','重命名路径','Renombrar ruta','Ubah nama path'],
+    deleteFile:['Xóa tệp','Delete file','删除文件','Eliminar archivo','Hapus file'],
+    downloadBackup:['Tải bản sao lưu','Download backup','下载备份','Descargar copia de seguridad','Unduh cadangan'],
+    undoEdit:['Hoàn tác','Undo edit','撤销编辑','Deshacer edición','Urungkan edit'],
+    redoEdit:['Làm lại','Redo edit','重做','Rehacer edición','Ulangi edit'],
+    copyManifest:['Sao chép','Copy','复制','Copiar','Salin'],
+    download:['Tải xuống','Download','下载','Descargar','Unduh'],
+    useSnippet:['Dùng đoạn mã','Use snippet','使用代码片段','Usar fragmento','Gunakan snippet'],
+    checkScript:['Kiểm tra script','Check pasted script','检查脚本','Comprobar script','Periksa script'],
+    show:['Hiển thị','Show','显示','Mostrar','Tampilkan'],
+    reset:['Đặt lại','Reset','重置','Restablecer','Atur ulang'],
+    accent:['Màu nhấn:','Accent:','强调色：','Color de acento:','Warna aksen:'],
+    namespace:['Namespace:','Namespace:','命名空间：','Espacio de nombres:','Namespace:'],
+    targetVersion:['Phiên bản Bedrock mục tiêu','Target Bedrock version','目标 Bedrock 版本','Versión objetivo de Bedrock','Versi Bedrock target'],
+    checkCompatibility:['Kiểm tra tương thích','Check compatibility','检查兼容性','Comprobar compatibilidad','Periksa kompatibilitas'],
+    updateData:['Cập nhật dữ liệu','Update data','更新数据','Actualizar datos','Perbarui data'],
+    studioAiSub:['Trợ lý Bedrock • AI trực tuyến tự động','Bedrock assistant • automatic online AI','Bedrock 助手 • 自动在线 AI','Asistente Bedrock • IA en línea automática','Asisten Bedrock • AI online otomatis'],
+    close:['Đóng','Close','关闭','Cerrar','Tutup'],
+    autoAi:['Tự động chọn AI','Automatic AI selection','自动选择 AI','Selección automática de IA','Pemilihan AI otomatis'],
+    autoAiDesc:['Studio tự thử các AI đã cấu hình và chuyển sang AI khác nếu gặp lỗi.','Studio tries configured providers and switches to another if one fails.','Studio 会尝试已配置的 AI，遇到错误时自动切换。','Studio prueba los proveedores configurados y cambia si uno falla.','Studio mencoba penyedia yang dikonfigurasi dan beralih jika terjadi kesalahan.'],
+    backendUrl:['Địa chỉ backend (Render)','Backend URL (Render)','后端地址（Render）','URL del backend (Render)','URL backend (Render)'],
+    saveUrl:['Lưu địa chỉ','Save URL','保存地址','Guardar URL','Simpan URL'],
+    testConnection:['Kiểm tra kết nối','Test connection','测试连接','Probar conexión','Uji koneksi'],
+    aiSettings:['Cài đặt AI trực tuyến','Online AI settings','在线 AI 设置','Configuración de IA en línea','Pengaturan AI online'],
+    aiInput:['Hỏi về Minecraft Bedrock…','Ask about Minecraft Bedrock…','询问 Minecraft Bedrock…','Pregunta sobre Minecraft Bedrock…','Tanya tentang Minecraft Bedrock…'],
+    aiWelcome:['Xin chào! Mình là Studio AI. Hãy hỏi về Minecraft Bedrock, Manifest, JSON hoặc Script API.','Hi! I’m Studio AI. Ask me about Minecraft Bedrock, manifests, JSON, or the Script API.','你好！我是 Studio AI。可以询问 Minecraft Bedrock、Manifest、JSON 或 Script API。','¡Hola! Soy Studio AI. Pregunta sobre Minecraft Bedrock, manifiestos, JSON o Script API.','Hai! Saya Studio AI. Tanyakan tentang Minecraft Bedrock, Manifest, JSON, atau Script API.'],
+    aiThinking:['Đang suy nghĩ…','Thinking…','正在思考…','Pensando…','Sedang berpikir…'],
+    aiUnavailable:['AI trực tuyến hiện chưa sẵn sàng.','Online AI is not available right now.','在线 AI 暂时不可用。','La IA en línea no está disponible ahora.','AI online belum tersedia saat ini.'],
+    wait:['Bạn đợi một chút rồi gửi câu hỏi tiếp theo nhé.','Please wait a moment before sending another question.','请稍等片刻再发送下一个问题。','Espera un momento antes de enviar otra pregunta.','Tunggu sebentar sebelum mengirim pertanyaan berikutnya.'],
+    noBackend:['Hãy nhập URL backend rồi nhấn Lưu URL.','Enter the backend URL and click Save URL.','请输入后端地址，然后点击保存。','Introduce la URL del backend y pulsa Guardar URL.','Masukkan URL backend lalu tekan Simpan URL.'],
+    offlineIntro:['Mình có thể trả lời câu hỏi thường gặp ngay trên máy hoặc dùng AI trực tuyến khi backend sẵn sàng.','I can answer common questions locally or use online AI when the backend is ready.','我可以在本地回答常见问题，也可以在后端可用时使用在线 AI。','Puedo responder preguntas frecuentes localmente o usar IA en línea cuando el backend esté listo.','Saya dapat menjawab pertanyaan umum secara lokal atau memakai AI online saat backend siap.']
+  };
+  const idMap={
+    'loadStatus':'ready','uStatus':'','brCompatNote':'','brLoadStatus':'','packCompatNote':'','packStatus':'','packStatus2':'',
+    'packDraftStatus':'','manifestStatus':'','langStatus':'','skelStatus':'','settingsStatus':'','apiCompatNote':'',
+    'compatDataStatus':'','compatReport':''
+  };
+  const idKeys={
+    decodeBtn:'decode',encodeBtn:'encode',fixBtn:'fix',prettyBtn:'pretty',minifyBtn:'minify',clearBtn:'clear',copyBtn:'copy',highlightBtn:'highlight',
+    genUuid:'genUuid',copyUuid:'copy',openBrBtn:'openBr',addFilesBtn:'addFiles',newBrBtn:'new',packBtn:'packBr',zipBtn:'exportZip',
+    openPackBtn:'openPack',packAddBtn:'addFiles',packLoadEdit:'open',packFormatJson:'formatJson',packCheckSyntax:'checkSyntax',
+    packSaveEdit:'saveChanges',packRenameBtn:'renamePath',packDeleteBtn:'deleteFile',packBackupBtn:'downloadBackup',packUndoBtn:'undoEdit',
+    packRedoBtn:'redoEdit',exportMcpack:'exportMcpack',validatorOpenBtn:'choosePack',validatorRunBtn:'validatePack',
+    validatorManifestBtn:'validateManifest',validatorClearBtn:'clearResults',genManifest:'generate',copyManifest:'copyManifest',
+    downloadManifest:'download',langDecode:'decode',langEncode:'encode',langToJson:'toJson',langFromJson:'fromJson',
+    genTemplate:'generate',genSkeleton:'genSkeleton',genContents:'genContents',apiInsertBtn:'useSnippet',apiCheckBtn:'checkScript',
+    showSnippet:'show',resetAccent:'reset',compatCheckBtn:'checkCompatibility',compatRefreshBtn:'updateData',
+    studioAiClose:'close',studioAiSaveBackend:'saveUrl',studioAiTestBackend:'testConnection'
+  };
+  const idLocaleText={
+    uInput:['Dán JSON hoặc chuỗi có Unicode escape…','Paste JSON or a Unicode-escaped string…','粘贴 JSON 或 Unicode 转义字符串…','Pega JSON o una cadena con escapes Unicode…','Tempel JSON atau teks dengan escape Unicode…'],
+    uOutput:['Kết quả sẽ xuất hiện ở đây…','Output will appear here…','结果将显示在这里…','El resultado aparecerá aquí…','Hasil akan muncul di sini…'],
+    outputName:['Tên tệp đầu ra','Output filename','输出文件名','Nombre del archivo de salida','Nama file keluaran'],
+    packSearch:['Tìm tệp theo tên…','Search files by name…','按名称搜索文件…','Buscar archivos por nombre…','Cari file berdasarkan nama…'],
+    packEditPath:['Chọn tệp ở trên hoặc nhập đường dẫn','Select a file above or enter a path','选择上方文件或输入路径','Selecciona un archivo o introduce una ruta','Pilih file di atas atau masukkan path'],
+    packEditContent:['Chọn tệp văn bản để chỉnh sửa…','Choose a text file to edit…','选择要编辑的文本文件…','Elige un archivo de texto para editar…','Pilih file teks untuk diedit…'],
+    manifestName:['Tên pack','Pack name','包名称','Nombre del pack','Nama pack'],
+    manifestDesc:['Mô tả','Description','描述','Descripción','Deskripsi'],
+    manifestAuthor:['Tác giả','Author','作者','Autor','Penulis'],
+    manifestLicense:['Giấy phép (ví dụ: MIT)','License (e.g. MIT)','许可证（例如 MIT）','Licencia (p. ej., MIT)','Lisensi (mis. MIT)'],
+    manifestUrl:['URL trang web của pack','Pack website URL','包网站 URL','URL del sitio del pack','URL situs pack'],
+    manifestProductType:['Loại sản phẩm (addon)','Product type (addon)','产品类型（addon）','Tipo de producto (addon)','Jenis produk (addon)'],
+    manifestSubpacks:['Mảng JSON Subpacks','Subpacks JSON array','Subpacks JSON 数组','Matriz JSON de subpacks','Array JSON subpacks'],
+    manifestSettings:['Mảng JSON cài đặt Manifest V3','Manifest V3 settings JSON array','Manifest V3 设置 JSON 数组','Matriz JSON de ajustes Manifest V3','Array JSON pengaturan Manifest V3'],
+    langInput:['key.name=Value','key.name=Giá trị','key.name=值','key.name=Valor','key.name=Nilai'],
+    skelName:['Tên add-on','Addon name','附加包名称','Nombre del add-on','Nama addon'],
+    contentsInput:['entities/custom.entity.json','Đường dẫn tệp, ví dụ entities/custom.entity.json','文件路径，例如 entities/custom.entity.json','Ruta del archivo, p. ej. entities/custom.entity.json','Path file, mis. entities/custom.entity.json'],
+    apiCode:['Chọn đoạn mã hoặc dán JavaScript để kiểm tra…','Choose a snippet or paste JavaScript to check…','选择代码片段或粘贴 JavaScript 进行检查…','Elige un fragmento o pega JavaScript para comprobarlo…','Pilih snippet atau tempel JavaScript untuk diperiksa…'],
+    compatTargetVersion:['ví dụ: 1.26.0','e.g. 1.26.0','例如：1.26.0','p. ej., 1.26.0','mis. 1.26.0'],
+    studioAiBackendUrl:['https://ten-dich-vu.onrender.com','https://your-service.onrender.com','https://your-service.onrender.com','https://tu-servicio.onrender.com','https://layanan-anda.onrender.com'],
+    studioAiInput:['Hỏi về Minecraft Bedrock…','Ask about Minecraft Bedrock…','询问 Minecraft Bedrock…','Pregunta sobre Minecraft Bedrock…','Tanya tentang Minecraft Bedrock…']
+  };
+  const selectorText={
+    'h2:contains-not-supported':null
+  };
+  const headingMap=[
+    ['#tab-tools .card:nth-child(1) h2','unicode'],['#tab-tools .card:nth-child(2) h2','uuid'],
+    ['#tab-brarchive .card:nth-child(1) h2','archive'],['#tab-brarchive .card:nth-child(2) h2','files'],['#tab-brarchive .card:nth-child(3) h2','export'],
+    ['#tab-pack .card:nth-child(1) h2','pack'],['#tab-pack .card:nth-child(2) h2','structure'],
+    ['#packImageMeta',''],['#tab-pack .card:nth-child(3) h3','imagePreview'],['#tab-pack .card:nth-child(4) h3','manifestOverview'],['#tab-pack .card:nth-child(5) h3','textEditor'],
+    ['#tab-pack .card:nth-child(2) .card h2','manifestOverview'],['#tab-pack .card:nth-child(3) h2','export'],
+    ['#tab-manifest .card h2','generateManifest'],['#tab-manifest .card .card h3','manifestOptions'],
+    ['#tab-lang .card:nth-child(1) h2','langEditor'],['#tab-lang .card:nth-child(2) h2','quickTemplates'],
+    ['#tab-coder .card:nth-child(1) h2','packSkeleton'],['#tab-coder .card:nth-child(3) h2','scriptHelper'],['#tab-coder .card:nth-child(4) h2','snippets'],
+    ['#compatibilityCard h2','compatibility'],['#tab-settings .card:last-child h2','supportedFiles']
+  ];
+  function apply(){
+    const lang=locales.includes(select.value)?select.value:'vi';
+    const ix=locales.indexOf(lang);
+    const get=k=>dict[k]&&dict[k][ix];
+    document.documentElement.lang=lang;
+    try{localStorage.setItem('studio-language',lang)}catch(_){}
+    document.querySelectorAll('.tab').forEach(el=>{const k=el.dataset.tab;const v=get(k);if(v)el.textContent=v;});
+    document.querySelectorAll('.mobile-nav-item[data-mobile-tab]').forEach(el=>{const small=el.querySelector('small');if(small){const v=get(el.dataset.mobileTab);if(v)small.textContent=v;}});
+    document.querySelectorAll('.mobile-more-menu [data-mobile-tab]').forEach(el=>{const v=get(el.dataset.mobileTab);if(v){const icon=el.textContent.match(/^\s*[^A-Za-z\u00C0-\u024F]+/)?.[0]||'';el.textContent=icon+v;}});
+    Object.entries(idKeys).forEach(([id,key])=>{const el=document.getElementById(id),v=get(key);if(el&&v)el.textContent=v;});
+    Object.entries(idLocaleText).forEach(([id,values])=>{const el=document.getElementById(id);if(el)el.placeholder=values[ix];});
+    headingMap.forEach(([selector,key])=>{const el=document.querySelector(selector),v=get(key);if(el&&v)el.textContent=v;});
+    const aiText={
+      studioAiSub:'studioAiSub',studioAiClose:'close',studioAiSaveBackend:'saveUrl',studioAiTestBackend:'testConnection'
+    };
+    const sub=document.querySelector('.studio-ai-head small');if(sub)sub.textContent=get('studioAiSub');
+    const summary=document.querySelector('#studioAiPanel details summary');if(summary)summary.textContent=get('aiSettings');
+    const auto=document.querySelector('#studioAiPanel details div[style*="font-weight:600"]');if(auto)auto.textContent=get('autoAi');
+    const desc=document.querySelector('#studioAiPanel details div[style*="font-size:11px"]');if(desc)desc.textContent=get('autoAiDesc');
+    const urlLabel=document.querySelector('label[for="studioAiBackendUrl"]');if(urlLabel)urlLabel.textContent=get('backendUrl');
+    const input=document.getElementById('studioAiInput');if(input)input.placeholder=get('aiInput');
+    const sendButton=document.querySelector('#studioAiForm button');if(sendButton)sendButton.textContent=lang==='vi'?'Gửi':lang==='zh'?'发送':lang==='es'?'Enviar':lang==='id'?'Kirim':'Send';
+    headingMap.forEach(([selector,key])=>{const el=document.querySelector(selector),v=get(key);if(el&&v)el.textContent=v;});
+    const theme=document.getElementById('themeBtn');if(theme)theme.title=lang==='vi'?'Đổi giao diện sáng/tối':lang==='zh'?'切换浅色/深色主题':lang==='es'?'Cambiar tema claro/oscuro':lang==='id'?'Ganti tema terang/gelap':'Toggle light/dark theme';
+  }
+  try{const saved=localStorage.getItem('studio-language');if(saved&&locales.includes(saved))select.value=saved;}catch(_){}
+  select.addEventListener('change',apply);
+  apply();
+  window.StudioLocale={get language(){return select.value;},t:key=>{const i=locales.indexOf(select.value);return dict[key]?.[i]||key;}};
+})();
+</script>
 </body>
 </html>

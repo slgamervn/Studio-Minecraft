@@ -272,9 +272,14 @@ main{padding-top:14px}
 @media(min-width:980px){.mobile-bottom-nav,.mobile-more-menu{display:none!important}}
 
 /* Studio AI */
-.studio-ai-fab{position:fixed;right:18px;bottom:22px;z-index:1000;border:0;border-radius:999px;background:var(--accent);color:#10201a;font-weight:800;padding:13px 17px;box-shadow:0 8px 28px #0005;cursor:pointer}
+@keyframes studioFadeUp{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes studioFabPulse{0%,100%{box-shadow:0 8px 28px #0005}50%{box-shadow:0 10px 32px #0007}}
+.studio-ai-fab{animation:studioFabPulse 4s ease-in-out infinite;z-index:1000;border:0;border-radius:999px;background:var(--accent);color:#10201a;font-weight:800;padding:13px 17px;box-shadow:0 8px 28px #0005;cursor:pointer}
 .studio-ai-panel{position:fixed;right:18px;bottom:82px;width:min(390px,calc(100vw - 24px));height:min(570px,calc(100dvh - 110px));z-index:1001;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 16px 55px #0008;display:flex;flex-direction:column;overflow:hidden}
 .studio-ai-panel[hidden]{display:none}
+.studio-ai-panel:not([hidden]){animation:studioFadeUp .22s ease-out both}
+.studio-ai-msg{animation:studioFadeUp .18s ease-out both}
+@media(prefers-reduced-motion:reduce){.studio-ai-fab,.studio-ai-panel:not([hidden]),.studio-ai-msg{animation:none!important;transition:none!important}}
 .studio-ai-head{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:var(--panel2);border-bottom:1px solid var(--line);gap:10px}
 .studio-ai-head strong{color:var(--accent);font-size:14px}
 .studio-ai-head small{display:block;color:var(--dim);font-size:11px}
@@ -804,6 +809,25 @@ const I18N = {
   }
 };
 
+const LANGUAGE_KEY = 'bedrock_studio_language_v1';
+function detectSupportedLanguage() {
+  const candidates = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || 'vi'];
+  for (const candidate of candidates) {
+    const code = String(candidate).toLowerCase().split(/[-_]/)[0];
+    if (['vi', 'en', 'zh', 'es', 'id'].includes(code)) return code;
+  }
+  return 'en';
+}
+function initializeLanguage() {
+  const select = document.getElementById('langSelect');
+  let saved = '';
+  try { saved = localStorage.getItem(LANGUAGE_KEY) || ''; } catch {}
+  const initial = ['vi', 'en', 'zh', 'es', 'id'].includes(saved) ? saved : detectSupportedLanguage();
+  select.value = initial;
+  select.dataset.languageSource = saved ? 'saved' : 'detected';
+}
+initializeLanguage();
+
 function applyLang() {
   const lang = document.getElementById('langSelect').value || 'vi';
   const t = I18N[lang] || I18N.vi;
@@ -846,7 +870,11 @@ function applyLang() {
     if (el && t[key]) el.textContent = t[key];
   }
 }
-document.getElementById('langSelect').onchange = applyLang;
+document.getElementById('langSelect').onchange = () => {
+  try { localStorage.setItem(LANGUAGE_KEY, document.getElementById('langSelect').value); } catch {}
+  document.getElementById('langSelect').dataset.languageSource = 'saved';
+  applyLang();
+};
 applyLang();
 
 const prefs = { theme: storage.get('theme') || 'light', ns: storage.get('ns') || 'mypack' };
@@ -2172,6 +2200,8 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   ];
   function addMessage(text,who){const el=document.createElement('div');el.className='studio-ai-msg '+who;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;}
   function localAnswer(q){
+    const selectedLanguage = document.getElementById('langSelect')?.value || detectSupportedLanguage();
+    if (selectedLanguage !== 'vi') return null;
     const n=norm(q);
     const exactIntents=[
       {match:/^(xin chao|chao|hello|hi|hey|good morning|good afternoon|good evening)$/,keys:['xin chao']},
@@ -2209,7 +2239,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     try{
       const backend=getBackendUrl();
       if(!backend)throw new Error('Hãy mở Cấu hình AI trực tuyến, nhập URL Render, rồi nhấn Lưu URL.');
-      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);let res;try{res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q}),signal:controller.signal});}finally{clearTimeout(timer);}
+      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);let res;try{res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q,language:document.getElementById('langSelect')?.value||detectSupportedLanguage()}),signal:controller.signal});}finally{clearTimeout(timer);}
       let data={};try{data=await res.json();}catch(_){}
       pending.remove();
       if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');

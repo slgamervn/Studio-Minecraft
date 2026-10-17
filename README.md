@@ -4,6 +4,29 @@ A lightweight, browser-based toolkit for creating, inspecting, and editing Minec
 
 **[Open Studio](https://slgamervn.github.io/Studio-Minecraft/)** · **[Source Code](https://github.com/slgamervn/Studio-Minecraft)**
 
+## Bedrock Wiki-informed validation
+
+The compatibility panel links to the Bedrock Wiki guides used to inform the editor's checks and workflow notes. Current coverage includes:
+
+- Add-on architecture: behavior packs vs resource packs and how they communicate.
+- Project setup and manifest structure.
+- Script API setup, module dependencies, Script API 2.0 world-load timing, and core server scripting patterns.
+- Entity client/server file separation and block definitions.
+- Custom command setup.
+- Manifest checks for module UUIDs, script entry points, duplicate dependencies, dependency version types, and V2/V3 version-field shape.
+
+These checks are advisory static analysis. They do not replace Microsoft Learn's version-specific reference, Minecraft Content Log, or in-game testing. Bedrock Wiki pages can target different game versions, so features must be verified against the user's target Bedrock release.
+
+Primary references:
+- https://wiki.bedrock.dev/guide/addons
+- https://wiki.bedrock.dev/guide/project-setup
+- https://wiki.bedrock.dev/scripting/scripting-intro
+- https://wiki.bedrock.dev/scripting/api-modules
+- https://wiki.bedrock.dev/scripting/script-server
+- https://wiki.bedrock.dev/guide/custom-entity
+- https://wiki.bedrock.dev/blocks/blocks-intro
+- https://wiki.bedrock.dev/scripting/custom-commands
+
 ## Features
 
 - **Unicode & JSON Tools** — Encode/decode Unicode escapes, format, minify, highlight, and repair common JSON formatting issues.

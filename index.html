@@ -2167,9 +2167,22 @@ if(activeTab)syncNav(activeTab.dataset.tab);
   ];
   function addMessage(text,who){const el=document.createElement('div');el.className='studio-ai-msg '+who;el.textContent=text;messages.appendChild(el);messages.scrollTop=messages.scrollHeight;}
   function localAnswer(q){
-    const n=norm(q);let best=null,bestScore=0;
-    for(const item of kb){let score=0;for(const key of item.keys){const k=norm(key);if(n===k)score+=5;else if(n.includes(k))score+=Math.max(2,Math.min(4,k.split(' ').length));else if(k.split(' ').length>1&&k.split(' ').every(w=>n.includes(w)))score+=2;}if(score>bestScore){best=item;bestScore=score;}}
-    return best&&bestScore>=2?best.answer:null;
+    const n=norm(q);
+    const exactIntents=[
+      {match:/^(xin chao|chao|hello|hi|hey|good morning|good afternoon|good evening)$/,keys:['xin chao']},
+      {match:/^(manifest la gi|giai thich manifest|manifest la tep gi)$/,keys:['manifest']},
+      {match:/^(loi json|sua loi json|cach sua json|json bi loi|json syntax error)$/,keys:['json']},
+      {match:/^(script api la gi|giai thich script api|api version la gi)$/,keys:['script api']},
+      {match:/^(achievement friendly la gi|giu thanh tuu|lam sao giu achievement friendly)$/,keys:['achievement']},
+      {match:/^(subpack la gi|subpacks la gi)$/,keys:['subpack']},
+      {match:/^(brarchive la gi|cach dung brarchive|mo brarchive)$/,keys:['brarchive']},
+      {match:/^(format version la gi|format version trong json la gi)$/,keys:['format_version']},
+      {match:/^(pack explorer la gi|dung pack explorer the nao)$/,keys:['pack explorer']}
+    ];
+    const intent=exactIntents.find(item=>item.match.test(n));
+    if(!intent)return null;
+    const item=kb.find(entry=>entry.keys.includes(intent.keys[0]));
+    return item?item.answer:null;
   }
   const BACKEND_KEY='studio_ai_backend_url_v1';
   function cleanBackendUrl(value){const raw=String(value||'').trim().replace(/\/+$/,'');if(!raw)return '';const u=new URL(raw);if(u.protocol!=='https:'&&!(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)))throw new Error('Dùng URL HTTPS của backend (hoặc localhost khi thử trên máy).');let path=u.pathname.replace(/\/+$/,'');path=path.replace(/\/(?:health|api\/ai)$/,'');return u.origin+path;}
@@ -2191,7 +2204,7 @@ if(activeTab)syncNav(activeTab.dataset.tab);
     try{
       const backend=getBackendUrl();
       if(!backend)throw new Error('Hãy mở Cấu hình AI trực tuyến, nhập URL Render, rồi nhấn Lưu URL.');
-      const res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+      const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);let res;try{res=await fetch(backend+'/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q}),signal:controller.signal});}finally{clearTimeout(timer);}
       let data={};try{data=await res.json();}catch(_){}
       pending.remove();
       if(!res.ok)throw new Error(data.error||'AI chưa khả dụng.');

@@ -1792,9 +1792,9 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   if (!jsonFiles.length) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorNoJson', 'No JSON files found in archive.') });
   if (!manifestCount) issues.push({ level: 'ERROR', path: validatorFileName, message: validatorT('validatorNoManifest', 'manifest.json not found.') });
   if (manifestCount > 1) issues.push({ level: 'WARN', path: validatorFileName, message: validatorT('validatorMultiManifest', 'Multiple manifest.json files found; check add-on structure.') });
-  const normalizePath = value => String(value || '').replace(/\\/g, '/').replace(/^\\/+/, '').replace(/\\/+/g, '/').replace(/\\.\\//g, '').toLowerCase();
+  const normalizePath = value => String(value || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/').replace(/\.\//g, '').toLowerCase();
   const normalizedFiles = new Set(files.map(normalizePath));
-  const imageFiles = new Set(files.filter(n => /\\.(png|tga|jpg|jpeg|webp)$/i.test(n)).map(n => normalizePath(n).replace(/\\.(png|tga|jpg|jpeg|webp)$/i, '')));
+  const imageFiles = new Set(files.filter(n => /\.(png|tga|jpg|jpeg|webp)$/i.test(n)).map(n => normalizePath(n).replace(/\.(png|tga|jpg|jpeg|webp)$/i, '')));
   const jsonObjects = new Map();
   for (const path of jsonFiles) {
     try { jsonObjects.set(path, parseJsonWithComments(await validatorZip.file(path).async('string'))); } catch {}
@@ -1806,7 +1806,7 @@ document.getElementById('validatorRunBtn').onclick = async () => {
   };
   const existsPath = candidates => candidates.some(candidate => normalizedFiles.has(normalizePath(candidate)));
   const resolveRelative = (from, ref, extensions = []) => {
-    const value = String(ref || '').replace(/\\/g, '/').replace(/^\\/+/, '');
+    const value = String(ref || '').replace(/\\/g, '/').replace(/^\/+/, '');
     const base = from.includes('/') ? from.slice(0, from.lastIndexOf('/') + 1) : '';
     const stack = [];
     for (const part of (base + value).split('/')) { if (!part || part === '.') continue; if (part === '..') stack.pop(); else stack.push(part); }
@@ -1834,25 +1834,25 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     if (obj.texture_data && typeof obj.texture_data === 'object') Object.keys(obj.texture_data).forEach(k => textureAliases.add(k.toLowerCase()));
   }
   const addTextureRef = (path, value, key) => {
-    const val = String(value || '').replace(/\\/g, '/').replace(/^\\/+/, '');
-    if (!val || val.includes('://') || /^(minecraft:|geometry\\.|controller\\.|animation\\.|query\\.|variable\\.|temp\\.)/i.test(val)) return;
-    if (/^textures\\//i.test(val)) {
-      const stripped = val.replace(/\\.(png|tga|jpg|jpeg|webp)$/i, '');
+    const val = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!val || val.includes('://') || /^(minecraft:|geometry\.|controller\.|animation\.|query\.|variable\.|temp\.)/i.test(val)) return;
+    if (/^textures\//i.test(val)) {
+      const stripped = val.replace(/\.(png|tga|jpg|jpeg|webp)$/i, '');
       const candidates = [stripped, ...['.png','.tga','.jpg','.jpeg','.webp'].map(ext => stripped + ext)];
       if (!existsPath(candidates)) addRef('WARN',path,'Texture file reference may be missing: "' + val + '" (checked conventional image extensions). Texture atlas keys are not file paths and are handled separately.');
       return;
     }
-    if (/^texture\\./i.test(val) && !textureAliases.has(val.replace(/^texture\\./i,'').toLowerCase())) addRef('WARN',path,'Texture alias "' + val + '" was not found in texture_data keys; verify atlas key conventions.');
+    if (/^texture\./i.test(val) && !textureAliases.has(val.replace(/^texture\./i,'').toLowerCase())) addRef('WARN',path,'Texture alias "' + val + '" was not found in texture_data keys; verify atlas key conventions.');
   };
   for (const [path,obj] of jsonObjects) {
     const visit = (value, key = '', parent = '') => {
       if (typeof value === 'string') {
         const k = key.toLowerCase(), v = value.trim();
         if (/^textures?$/i.test(k) || /texture/i.test(k) && !/atlas|path|data/i.test(k)) addTextureRef(path,v,key);
-        if (/geometry/i.test(k) && /^geometry\\./i.test(v) && !geoNames.has(v.toLowerCase())) addRef('WARN',path,'Geometry identifier "' + v + '" was not found in scanned geometry files. Confirm the geometry file is included and registered.');
-        if (/animation/i.test(k) && /^animation\\./i.test(v) && !animationNames.has(v.toLowerCase())) addRef('WARN',path,'Animation identifier "' + v + '" was not found in scanned animation files.');
-        if (/render_controller/i.test(k) && /^controller\\.render\\./i.test(v) && !renderControllerNames.has(v.toLowerCase())) addRef('WARN',path,'Render controller "' + v + '" was not found in scanned render-controller files.');
-        if (/^(geometry|animation|render_controller|texture)/i.test(k) && /^(textures\\/|models\\/|animations\\/|animation_controllers\\/|render_controllers\\/)/i.test(v)) {
+        if (/geometry/i.test(k) && /^geometry\./i.test(v) && !geoNames.has(v.toLowerCase())) addRef('WARN',path,'Geometry identifier "' + v + '" was not found in scanned geometry files. Confirm the geometry file is included and registered.');
+        if (/animation/i.test(k) && /^animation\./i.test(v) && !animationNames.has(v.toLowerCase())) addRef('WARN',path,'Animation identifier "' + v + '" was not found in scanned animation files.');
+        if (/render_controller/i.test(k) && /^controller\.render\./i.test(v) && !renderControllerNames.has(v.toLowerCase())) addRef('WARN',path,'Render controller "' + v + '" was not found in scanned render-controller files.');
+        if (/^(geometry|animation|render_controller|texture)/i.test(k) && /^(textures\/|models\/|animations\/|animation_controllers\/|render_controllers\/)/i.test(v)) {
           const candidates = resolveRelative(path,v,['.json','.geo.json']);
           if (!existsPath(candidates)) addRef('WARN',path,'Referenced resource path may be missing: "' + v + '" (checked relative path and common JSON extensions).');
         }
@@ -1864,8 +1864,8 @@ document.getElementById('validatorRunBtn').onclick = async () => {
     const fv = obj && obj.format_version;
     if (base.endsWith('.entity.json') && !obj['minecraft:client_entity']) addRef('WARN',path,'Filename resembles a client entity, but minecraft:client_entity is absent.');
     if (base.endsWith('.entity.json') && obj['minecraft:client_entity'] && !obj['minecraft:client_entity'].description) addRef('ERROR',path,'minecraft:client_entity.description is required for a typical client-entity definition.');
-    if (base.endsWith('.json') && fv !== undefined && typeof fv === 'string' && /^\\d+\\.\\d+\\.\\d+$/.test(fv) === false) addRef('WARN',path,'format_version is not in the common x.y.z form; confirm the resource-specific schema.');
-    if (/\\.geo\\.json$/.test(base) && !obj['minecraft:geometry'] && !obj.geometry) addRef('WARN',path,'Geometry-like file does not expose minecraft:geometry; verify the geometry format and path.');
+    if (base.endsWith('.json') && fv !== undefined && typeof fv === 'string' && /^\d+\.\d+\.\d+$/.test(fv) === false) addRef('WARN',path,'format_version is not in the common x.y.z form; confirm the resource-specific schema.');
+    if (/\.geo\.json$/.test(base) && !obj['minecraft:geometry'] && !obj.geometry) addRef('WARN',path,'Geometry-like file does not expose minecraft:geometry; verify the geometry format and path.');
     if (/animation_controller/i.test(base) && !obj.animation_controllers) addRef('WARN',path,'Animation-controller-like file does not expose animation_controllers.');
     if (/render_controller/i.test(base) && !obj.render_controllers) addRef('WARN',path,'Render-controller-like file does not expose render_controllers.');
   }

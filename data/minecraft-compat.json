@@ -53,6 +53,46 @@
       "id": "addon-troubleshooting",
       "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/troubleshootingaddons?view=minecraft-bedrock-stable",
       "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-addons",
+      "url": "https://wiki.bedrock.dev/guide/addons",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-manifest-project-setup",
+      "url": "https://wiki.bedrock.dev/guide/project-setup",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-script-intro",
+      "url": "https://wiki.bedrock.dev/scripting/scripting-intro",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-script-api-modules",
+      "url": "https://wiki.bedrock.dev/scripting/api-modules",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-script-core-features",
+      "url": "https://wiki.bedrock.dev/scripting/script-server",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-custom-entity",
+      "url": "https://wiki.bedrock.dev/guide/custom-entity",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-blocks",
+      "url": "https://wiki.bedrock.dev/blocks/blocks-intro",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "wiki-custom-commands",
+      "url": "https://wiki.bedrock.dev/scripting/custom-commands",
+      "checked": "2026-10-17"
     }
   ],
   "manifest": {

@@ -34,4 +34,30 @@ for (const source of data.sources) {
     throw new Error('Every compatibility source must have an id and an official Microsoft Learn, Minecraft Creator, or Bedrock Wiki URL.');
   }
 }
-console.log('Syntax checked ' + scripts.length + ' inline scripts; compatibility data schema is valid.');
+
+const evidence = data.script_api.release_note_evidence || {};
+for (const [gameVersion, entry] of Object.entries(evidence)) {
+  if (!/^\d+\.\d+\.\d+$/.test(gameVersion) ||
+      entry?.status !== 'release-note-evidence' ||
+      typeof entry.module !== 'string' ||
+      !/^\d+\.\d+\.\d+$/.test(entry.version || '') ||
+      !/^https:\/\/learn\.microsoft\.com\//.test(entry.url || '') ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(entry.checked || '')) {
+    throw new Error('Invalid release-note evidence entry for Minecraft ' + gameVersion + '.');
+  }
+}
+
+const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(match => match[1]);
+const seenIds = new Set();
+for (const id of ids) {
+  if (seenIds.has(id)) throw new Error('Duplicate HTML id found: ' + id);
+  seenIds.add(id);
+}
+
+const serviceWorker = await readFile('sw.js', 'utf8');
+new vm.Script(serviceWorker, { filename: 'sw.js' });
+if (!serviceWorker.includes("url.pathname.endsWith('/data/minecraft-compat.json')") ||
+    !serviceWorker.includes("fetch(request, { cache: 'no-cache' })")) {
+  throw new Error('Service worker must refresh compatibility data from the network before using its offline cache.');
+}
+console.log('Syntax checked ' + scripts.length + ' inline scripts and sw.js; compatibility data, release-note evidence, and unique HTML ids are valid.');

@@ -98,6 +98,11 @@
       "id": "release-notes-1.26.20",
       "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/update1.26.20?view=minecraft-bedrock-stable",
       "checked": "2026-10-17"
+    },
+    {
+      "id": "release-notes-1.26.52",
+      "url": "https://feedback.minecraft.net/hc/en-us/articles/49175370527501-Minecraft-Bedrock-Edition-26-52-Hotfix-Changelog",
+      "checked": "2026-10-17"
     }
   ],
   "manifest": {
@@ -321,6 +326,25 @@
         "Released @minecraft/server v2.5.0, including additional stable block component types and player swing events.",
         "EntityHurtAfterEvent now fires when damage amount is zero; fixes were made to ItemStack and Entity getComponents behavior in older script versions."
       ]
+    },
+    {
+      "version": "1.26.52",
+      "date": "2026-09-25",
+      "source": "release-notes-1.26.52",
+      "changes": [
+        "Hotfix improves Nintendo Switch network stability and fixes a launch issue on some iOS devices.",
+        "Fixes invisible inventory items under certain non-default graphics settings.",
+        "Players in Spectator Mode are no longer hit by projectiles; cushions in unloaded chunks no longer disappear after reload.",
+        "Fixes an add-on achievement issue affecting older Marketplace worlds at and after version 26.50.",
+        "No @minecraft/server version mapping is inferred because this changelog does not state one."
+      ]
     }
-  ]
+  ],
+  "latest_bedrock_release": {
+    "version": "1.26.52",
+    "release_date": "2026-09-25",
+    "status": "stable-hotfix",
+    "source": "release-notes-1.26.52",
+    "note": "Latest stable Bedrock release recorded in the official release changelog. Script API version is not inferred from this game version."
+  }
 }

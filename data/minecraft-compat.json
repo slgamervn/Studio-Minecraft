@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "data_version": "2026.10.17.1",
+  "data_version": "2026.10.17.2",
   "updated_utc": "2026-10-17",
   "source_policy": "Only encode rules supported by linked Microsoft Minecraft Creator documentation. A missing mapping means unknown, not unsupported.",
   "sources": [
@@ -27,6 +27,16 @@
     {
       "id": "version-disambiguation",
       "url": "https://learn.microsoft.com/minecraft/creator/reference/content/VersionDisambiguation?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "server-module",
+      "url": "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable",
+      "checked": "2026-10-17"
+    },
+    {
+      "id": "latest-platform-guidance",
+      "url": "https://learn.microsoft.com/en-us/minecraft/creator/documents/practices/latestplatformversion?view=minecraft-bedrock-stable",
       "checked": "2026-10-17"
     }
   ],
@@ -134,7 +144,7 @@
     ]
   },
   "script_api": {
-    "policy": "Script API module versions are independent of Minecraft product versions. This is a partial historical mapping from the official versioning page, not a current latest-version catalogue.",
+    "policy": "Historical exact mappings are provided only where Microsoft Learn explicitly lists them. Latest documented module versions are shown separately and must not be treated as exact game-version mappings.",
     "minecraft_to_server_api_partial": {
       "1.19.70": "1.0.0",
       "1.19.80": "1.1.0",
@@ -152,7 +162,8 @@
       "1.21.30": "1.14.0",
       "1.21.40": "1.15.0",
       "1.21.50": "1.16.0",
-      "1.21.60": "1.17.0"
+      "1.21.60": "1.17.0",
+      "1.21.70": "unknown"
     },
     "tracks": [
       "stable",
@@ -163,7 +174,14 @@
       "Beta API versions do not guarantee backward compatibility and may require the Beta APIs experiment.",
       "Internal APIs are not supported for custom behavior packs.",
       "Do not infer an API version for a Minecraft release missing from the mapping."
-    ]
+    ],
+    "latest_documented_stable": {
+      "module": "@minecraft/server",
+      "version": "2.10.0",
+      "evidence": "Microsoft Learn lists 2.10.0 as latest stable module and lists 2.12.0-beta for preview 1.26.60; this is not a guarantee that every target game build supports it.",
+      "checked": "2026-10-17",
+      "url": "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable"
+    }
   },
   "file_formats": {
     "rule": "A JSON file's format_version describes that file type's data contract; it is not generally the same as the installed Minecraft version.",

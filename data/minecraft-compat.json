@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "data_version": "2026.10.19.5",
-  "updated_utc": "2026-10-19",
+  "data_version": "2026.10.26.5",
+  "updated_utc": "2026-10-26",
   "source_policy": "Only encode rules supported by linked Microsoft Minecraft Creator documentation. A missing mapping means unknown, not unsupported.",
   "sources": [
     {
@@ -32,7 +32,7 @@
     {
       "id": "server-module",
       "url": "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable",
-      "checked": "2026-10-19"
+      "checked": "2026-10-26"
     },
     {
       "id": "latest-platform-guidance",
@@ -250,7 +250,7 @@
       "module": "@minecraft/server",
       "version": "2.10.0",
       "evidence": "Extracted from the Microsoft Learn stable module reference. This is not an exact mapping to every Minecraft game version.",
-      "checked": "2026-10-19",
+      "checked": "2026-10-26",
       "url": "https://learn.microsoft.com/en-us/minecraft/creator/scriptapi/minecraft/server/minecraft-server?view=minecraft-bedrock-stable"
     },
     "release_note_evidence": {
